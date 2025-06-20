@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse
+package me.mitkovic.kmp.netpulse.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image

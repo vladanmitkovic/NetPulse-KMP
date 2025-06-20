@@ -1,8 +1,8 @@
-package me.mitkovic.kmp.netpulse
+package me.mitkovic.kmp.netpulse.platform
 
 import platform.UIKit.UIDevice
 
-class IOSPlatform: Platform {
+class IOSPlatform : Platform {
     override val name: String = UIDevice.currentDevice.systemName() + " " + UIDevice.currentDevice.systemVersion
 }
 
