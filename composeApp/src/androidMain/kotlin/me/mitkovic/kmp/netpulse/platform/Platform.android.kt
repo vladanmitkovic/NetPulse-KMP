@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse
+package me.mitkovic.kmp.netpulse.platform
 
 import android.os.Build
 
