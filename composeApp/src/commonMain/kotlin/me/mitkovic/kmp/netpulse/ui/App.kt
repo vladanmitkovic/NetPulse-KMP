@@ -6,19 +6,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import me.mitkovic.kmp.netpulse.logging.AppLogger
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 
 @Composable
-@Preview
 fun App() {
     val appLogger: AppLogger = koinInject<AppLogger>()
 
     appLogger.logDebug("GILE", "App Start from: " + Greeting().greet())
+
+    val appViewModel: AppViewModel = koinInject<AppViewModel>()
 
     MaterialTheme {
         Column(
