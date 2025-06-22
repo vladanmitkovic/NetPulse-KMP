@@ -46,11 +46,14 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.composeVM)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.sqldelight.runtime)
             api(libs.sqldelight.coroutines)
             implementation(libs.androidx.navigation.compose)
+            implementation(libs.xmlutil.serialization)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.xml)
+            implementation(libs.xmlutil.core)
         }
 
         androidMain.dependencies {
@@ -61,10 +64,10 @@ kotlin {
             implementation(libs.timber)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.core)
-            implementation(libs.retrofit.core)
-            implementation(libs.retrofit.converter.gson)
-            implementation(libs.okhttp.logging)
             implementation(libs.sqldelight.android.driver)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.xml)
         }
 
         iosMain.dependencies {
@@ -73,6 +76,7 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.sqldelight.native.driver)
+            implementation(libs.ktor.client.darwin)
         }
 
         desktopMain.dependencies {
@@ -81,8 +85,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.ktor.client.cio)
             implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.ktor.client.cio)
         }
 
         commonTest.dependencies {
