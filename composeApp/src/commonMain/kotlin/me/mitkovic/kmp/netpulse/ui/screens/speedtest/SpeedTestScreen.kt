@@ -1,4 +1,7 @@
 package me.mitkovic.kmp.netpulse.ui.screens.speedtest
 
-class SpeedTestScreen {
+import androidx.compose.runtime.Composable
+
+@Composable
+fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
 }
