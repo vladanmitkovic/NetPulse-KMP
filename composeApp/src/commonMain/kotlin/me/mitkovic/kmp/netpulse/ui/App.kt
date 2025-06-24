@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import org.koin.compose.koinInject
 
@@ -20,6 +22,18 @@ fun App() {
     appLogger.logDebug("GILE", "App Start from: " + Greeting().greet())
 
     val appViewModel: AppViewModel = koinInject<AppViewModel>()
+
+    val uiState = appViewModel.conversionRatesUiState.collectAsStateWithLifecycle()
+    val state = uiState.value
+
+    val servers: List<Server> =
+        when (state) {
+            is SpeedTestServersUiState.Success -> state.servers
+            else -> emptyList()
+        }
+
+    // appLogger.logDebug("GILE", "state: " + state)
+    appLogger.logDebug("GILE", "servers: " + servers)
 
     MaterialTheme {
         Column(

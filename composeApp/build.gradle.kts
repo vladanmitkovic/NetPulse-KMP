@@ -147,6 +147,17 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "me.mitkovic.kmp.netpulse"
             packageVersion = "1.0.0"
+
+            modules("java.sql")
+        }
+    }
+}
+
+// SQLDelight configuration
+sqldelight {
+    databases {
+        create("NetPulseDatabase") {
+            packageName.set("me.mitkovic.kmp.netpulse.data.local.database")
         }
     }
 }
