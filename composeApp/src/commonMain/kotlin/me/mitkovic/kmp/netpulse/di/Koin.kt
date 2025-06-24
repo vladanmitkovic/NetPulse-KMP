@@ -1,5 +1,6 @@
 package me.mitkovic.kmp.netpulse.di
 
+import me.mitkovic.kmp.netpulse.data.local.LocalDataSource
 import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSource
 import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepository
 import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepositoryImpl
@@ -21,6 +22,7 @@ val commonModule =
 
         single<SpeedTestServersRepository> {
             SpeedTestServersRepositoryImpl(
+                localDataSource = get<LocalDataSource>(),
                 remoteDataSource = get<RemoteDataSource>(),
                 logger = get<AppLogger>(),
             )

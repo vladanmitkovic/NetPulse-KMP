@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C8ECE6AC2E09DFE70046A709 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B9DA97B12DC1472C00A4DA20 /* NetPulse-KMP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "NetPulse-KMP.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -41,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8ECE6AC2E09DFE70046A709 /* libsqlite3.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,6 +58,7 @@
 			children = (
 				B9DA98002DC14AA900A4DA20 /* Configuration */,
 				B9DA97B32DC1472C00A4DA20 /* iosApp */,
+				C8ECE6AA2E09DFE70046A709 /* Frameworks */,
 				B9DA97B22DC1472C00A4DA20 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -62,6 +69,14 @@
 				B9DA97B12DC1472C00A4DA20 /* NetPulse-KMP.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C8ECE6AA2E09DFE70046A709 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

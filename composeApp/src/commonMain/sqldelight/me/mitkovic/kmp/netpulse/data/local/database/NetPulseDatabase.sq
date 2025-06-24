@@ -1,0 +1,22 @@
+CREATE TABLE SpeedTestServersEntity (
+    id TEXT NOT NULL PRIMARY KEY, -- Use the server 'id' from XML attributes as the primary key
+    url TEXT NOT NULL,
+    lat REAL NOT NULL,
+    lon REAL NOT NULL,
+    name TEXT NOT NULL,
+    country TEXT NOT NULL,
+    cc TEXT NOT NULL,
+    sponsor TEXT NOT NULL,
+    host TEXT NOT NULL
+);
+
+insertSpeedTestServer:
+INSERT OR REPLACE INTO SpeedTestServersEntity (
+    id, url, lat, lon, name, country, cc, sponsor, host
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getSpeedTestServers:
+SELECT * FROM SpeedTestServersEntity;
+
+clearSpeedTestServers:
+DELETE FROM SpeedTestServersEntity;
