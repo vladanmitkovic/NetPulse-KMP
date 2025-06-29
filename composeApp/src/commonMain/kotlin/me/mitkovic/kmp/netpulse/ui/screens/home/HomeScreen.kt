@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.mitkovic.kmp.netpulse.domain.model.Server
 
 @Composable
 fun HomeScreen(
@@ -87,18 +86,5 @@ fun HomeScreen(
                 Text("Loading...", modifier = Modifier.padding(top = 8.dp))
             }
         }
-    }
-}
-
-@Composable
-fun ServerRow(server: Server) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-    ) {
-        Text(text = server.name)
-        Text(text = server.host)
     }
 }

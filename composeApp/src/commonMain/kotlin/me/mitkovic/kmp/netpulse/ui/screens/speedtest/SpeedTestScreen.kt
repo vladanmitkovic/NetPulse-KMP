@@ -136,8 +136,8 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                     // Draw needle
                     val needleLength = size.width / 2.5f
                     val needleAngle = toRadians((180 + angle).toDouble()).toFloat()
-                    val needleEndX = (size.width / 2 + needleLength * cos(needleAngle)).toFloat()
-                    val needleEndY = (size.height / 2 + needleLength * sin(needleAngle)).toFloat()
+                    val needleEndX = (size.width / 2 + needleLength * cos(needleAngle))
+                    val needleEndY = (size.height / 2 + needleLength * sin(needleAngle))
                     drawLine(
                         color = Color.Black,
                         start = Offset(size.width / 2, size.height / 2),
