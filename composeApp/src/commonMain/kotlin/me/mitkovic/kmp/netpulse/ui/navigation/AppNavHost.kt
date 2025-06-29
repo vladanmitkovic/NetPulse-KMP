@@ -10,6 +10,7 @@ import me.mitkovic.kmp.netpulse.ui.screens.home.HomeScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.speedtest.SpeedTestScreen
 import me.mitkovic.kmp.netpulse.ui.screens.speedtest.SpeedTestScreenViewModel
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun AppNavHost(navHostController: NavController) {
@@ -17,19 +18,21 @@ fun AppNavHost(navHostController: NavController) {
         navController = navHostController as NavHostController,
         startDestination = Screen.Home,
     ) {
-        // CurrencyConverter screen
         composable<Screen.Home> {
-            val homeScreenVeiwModel: HomeScreenViewModel = koinInject<HomeScreenViewModel>()
+            val homeScreenViewModel: HomeScreenViewModel = koinInject<HomeScreenViewModel>()
             HomeScreen(
-                viewModel = homeScreenVeiwModel,
+                viewModel = homeScreenViewModel,
+                onNavigateToSpeedTest = { serverId ->
+                    navHostController.navigate(Screen.SpeedTest(serverId))
+                },
             )
         }
 
-        // Favorites screen
-        composable<Screen.SpeedTest> {
-            val favoritesViewModel: SpeedTestScreenViewModel = koinInject<SpeedTestScreenViewModel>()
+        composable<Screen.SpeedTest> { backStackEntry ->
+            val serverId = backStackEntry.arguments?.getInt("serverId") ?: 0
+            val speedTestViewModel: SpeedTestScreenViewModel = koinInject { parametersOf(serverId) }
             SpeedTestScreen(
-                viewModel = favoritesViewModel,
+                viewModel = speedTestViewModel,
             )
         }
     }

@@ -21,10 +21,11 @@ val viewModelModule =
                 logger = get<AppLogger>(),
             )
         }
-        factory {
+        factory { (serverId: Int) ->
             SpeedTestScreenViewModel(
                 netPulseRepository = get<NetPulseRepository>(),
                 logger = get<AppLogger>(),
+                serverId = serverId,
             )
         }
     }
