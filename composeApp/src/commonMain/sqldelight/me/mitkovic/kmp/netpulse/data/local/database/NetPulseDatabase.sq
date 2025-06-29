@@ -1,5 +1,5 @@
 CREATE TABLE SpeedTestServersEntity (
-    id TEXT NOT NULL PRIMARY KEY, -- Use the server 'id' from XML attributes as the primary key
+    id TEXT NOT NULL PRIMARY KEY,
     url TEXT NOT NULL,
     lat REAL NOT NULL,
     lon REAL NOT NULL,
@@ -10,6 +10,26 @@ CREATE TABLE SpeedTestServersEntity (
     host TEXT NOT NULL
 );
 
+CREATE TABLE SpeedTestSessionEntity (
+    sessionId INTEGER PRIMARY KEY AUTOINCREMENT,
+    serverId TEXT NOT NULL,
+    serverUrl TEXT NOT NULL,
+    serverName TEXT NOT NULL,
+    serverCountry TEXT NOT NULL,
+    serverSponsor TEXT NOT NULL,
+    serverHost TEXT NOT NULL,
+    testTimestamp INTEGER NOT NULL
+);
+
+CREATE TABLE SpeedTestResultEntity (
+    resultId INTEGER PRIMARY KEY AUTOINCREMENT,
+    sessionId INTEGER NOT NULL,
+    testType INTEGER NOT NULL,
+    speed REAL,
+    resultTimestamp INTEGER NOT NULL,
+    FOREIGN KEY (sessionId) REFERENCES SpeedTestSessionEntity(sessionId)
+);
+
 insertSpeedTestServer:
 INSERT OR REPLACE INTO SpeedTestServersEntity (
     id, url, lat, lon, name, country, cc, sponsor, host
@@ -18,5 +38,36 @@ INSERT OR REPLACE INTO SpeedTestServersEntity (
 getSpeedTestServers:
 SELECT * FROM SpeedTestServersEntity;
 
+getSpeedTestServerById:
+SELECT * FROM SpeedTestServersEntity WHERE id = ?;
+
 clearSpeedTestServers:
 DELETE FROM SpeedTestServersEntity;
+
+insertSpeedTestSession:
+INSERT INTO SpeedTestSessionEntity (
+    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, testTimestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+getSpeedTestSessions:
+SELECT * FROM SpeedTestSessionEntity ORDER BY testTimestamp DESC;
+
+getSpeedTestSessionByServerId:
+SELECT * FROM SpeedTestSessionEntity WHERE serverId = ? ORDER BY testTimestamp DESC;
+
+insertSpeedTestResult:
+INSERT INTO SpeedTestResultEntity (
+    sessionId, testType, speed, resultTimestamp
+) VALUES (?, ?, ?, ?);
+
+getSpeedTestResultsBySessionId:
+SELECT * FROM SpeedTestResultEntity WHERE sessionId = ? ORDER BY resultTimestamp;
+
+lastInsertRowId:
+SELECT last_insert_rowid();
+
+getLatestSpeedTestResult:
+SELECT *
+FROM SpeedTestResultEntity
+ORDER BY resultTimestamp DESC
+LIMIT 1;
