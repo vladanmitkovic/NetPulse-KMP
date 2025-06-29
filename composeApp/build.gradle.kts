@@ -54,6 +54,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.xml)
             implementation(libs.xmlutil.core)
+            implementation(libs.kotlinx.datetime)
         }
 
         androidMain.dependencies {
@@ -66,7 +67,6 @@ kotlin {
             implementation(libs.androidx.datastore.core)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.xml)
         }
 
@@ -74,7 +74,6 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.darwin)
-            implementation(libs.ktor.client.content.negotiation)
             implementation(libs.sqldelight.native.driver)
             implementation(libs.ktor.client.darwin)
         }
@@ -84,7 +83,6 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.koin.core)
             implementation(libs.ktor.client.cio)
-            implementation(libs.ktor.client.content.negotiation)
             implementation(libs.sqldelight.sqlite.driver)
             implementation(libs.ktor.client.cio)
         }

@@ -8,5 +8,7 @@ sealed class Screen {
     object Home : Screen()
 
     @Serializable
-    object SpeedTest : Screen()
+    data class SpeedTest(
+        val serverId: Int,
+    ) : Screen()
 }

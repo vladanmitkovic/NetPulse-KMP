@@ -8,6 +8,10 @@ import io.ktor.serialization.kotlinx.xml.xml
 import me.mitkovic.kmp.netpulse.data.local.LocalDataSource
 import me.mitkovic.kmp.netpulse.data.local.LocalDataSourceImpl
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.speedtestresults.SpeedTestResultsDataSource
+import me.mitkovic.kmp.netpulse.data.local.speedtestresults.SpeedTestResultsDataSourceImpl
+import me.mitkovic.kmp.netpulse.data.local.speedtestservers.SpeedTestServersDataSource
+import me.mitkovic.kmp.netpulse.data.local.speedtestservers.SpeedTestServersDataSourceImpl
 import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSource
 import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSourceImpl
 import me.mitkovic.kmp.netpulse.logging.AppLogger
@@ -33,9 +37,21 @@ actual fun platformModule() =
             )
         }
 
+        single<SpeedTestServersDataSource> {
+            SpeedTestServersDataSourceImpl(database = get<NetPulseDatabase>())
+        }
+
+        single<SpeedTestResultsDataSource> {
+            SpeedTestResultsDataSourceImpl(
+                database = get<NetPulseDatabase>(),
+                logger = get<AppLogger>(),
+            )
+        }
+
         single<LocalDataSource> {
             LocalDataSourceImpl(
-                database = get<NetPulseDatabase>(),
+                speedTestResults = get<SpeedTestResultsDataSource>(),
+                speedTestServers = get<SpeedTestServersDataSource>(),
             )
         }
 

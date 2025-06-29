@@ -65,6 +65,37 @@ open class SpeedTestServersDataSourceImpl(
                 }
             }
 
+    override fun getSpeedTestServer(serverId: Int): Flow<SpeedTestServersResponse?> =
+        database.netPulseDatabaseQueries
+            .getSpeedTestServerById(serverId.toString())
+            .asFlow()
+            .mapToList(context = Dispatchers.Default)
+            .map { entities ->
+                if (entities.isEmpty()) {
+                    null
+                } else {
+                    SpeedTestServersResponse(
+                        servers =
+                            entities.map { entity ->
+                                Server(
+                                    attrs =
+                                        mapOf(
+                                            "id" to entity.id,
+                                            "url" to entity.url,
+                                            "lat" to entity.lat.toString(),
+                                            "lon" to entity.lon.toString(),
+                                            "name" to entity.name,
+                                            "country" to entity.country,
+                                            "cc" to entity.cc,
+                                            "sponsor" to entity.sponsor,
+                                            "host" to entity.host,
+                                        ),
+                                )
+                            },
+                    )
+                }
+            }
+
     override suspend fun clearSpeedTestServers() {
         database.netPulseDatabaseQueries.clearSpeedTestServers()
     }

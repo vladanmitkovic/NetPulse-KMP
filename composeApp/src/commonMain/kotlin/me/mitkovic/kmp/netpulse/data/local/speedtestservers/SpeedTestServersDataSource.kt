@@ -9,5 +9,7 @@ interface SpeedTestServersDataSource {
 
     fun getSpeedTestServers(): Flow<SpeedTestServersResponse?>
 
+    fun getSpeedTestServer(serverId: Int): Flow<SpeedTestServersResponse?>
+
     suspend fun clearSpeedTestServers()
 }
