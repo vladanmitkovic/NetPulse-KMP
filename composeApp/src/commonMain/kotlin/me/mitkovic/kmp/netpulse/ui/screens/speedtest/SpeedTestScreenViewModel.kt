@@ -47,6 +47,8 @@ class SpeedTestScreenViewModel(
     serverId: Int,
 ) : ViewModel() {
 
+    private var hasRunSpeedTest = false
+
     private val _serverUiState = MutableStateFlow<ServerUiState>(ServerUiState.Loading)
     val serverUiState: StateFlow<ServerUiState> = _serverUiState.asStateFlow()
 
@@ -56,6 +58,11 @@ class SpeedTestScreenViewModel(
             val server = netPulseRepository.speedTestServersRepository.getSpeedTestServer(serverId)
             _serverUiState.value =
                 if (server != null) {
+                    ServerUiState.Success(server)
+                    if (!hasRunSpeedTest) {
+                        hasRunSpeedTest = true
+                        startSpeedTest(server)
+                    }
                     ServerUiState.Success(server)
                 } else {
                     ServerUiState.Error("Server not found for ID: $serverId")

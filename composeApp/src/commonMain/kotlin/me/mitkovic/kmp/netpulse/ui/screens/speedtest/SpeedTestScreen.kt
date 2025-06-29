@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.mitkovic.kmp.netpulse.data.local.database.SpeedTestResultEntity
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
@@ -47,8 +50,6 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
             is ServerUiState.Success -> {
                 if (serverStateValue.server != null) {
                     Text(text = serverStateValue.server.toString())
-
-                    viewModel.startSpeedTest(serverStateValue.server)
                 } else {
                     Text("Server not found")
                 }
@@ -79,6 +80,10 @@ private fun toRadians(degrees: Double): Double = degrees * (kotlin.math.PI / 180
 
 @Composable
 fun Speedometer(result: SpeedTestResultEntity?) {
+    // Store first download and upload speeds persistently
+    val firstDownloadSpeed = remember { mutableStateOf(0f) }
+    val firstUploadSpeed = remember { mutableStateOf(0f) }
+
     Column(
         modifier =
             Modifier
@@ -91,8 +96,19 @@ fun Speedometer(result: SpeedTestResultEntity?) {
         } else {
             val title = if (result.testType == 1L) "Download" else "Upload"
             val speed = result.speed?.toFloat() ?: 0f
-            val maxSpeed = 200f // Max speed for the speedometer (Mbps)
-            val angle = (speed / maxSpeed) * 180f // Map speed to 0-180 degrees
+
+            // Update first speeds if this is the first download or upload
+            if (result.testType == 1L && firstDownloadSpeed.value == 0f) {
+                firstDownloadSpeed.value = speed
+            } else if (result.testType == 2L && firstUploadSpeed.value == 0f) {
+                firstUploadSpeed.value = speed
+            }
+
+            // Calculate maxSpeed as max of first download/upload + 20% buffer
+            val maxSpeed = maxOf(firstDownloadSpeed.value, firstUploadSpeed.value) * 1.2f
+            // Ensure maxSpeed is at least 1 to avoid division by zero
+            val safeMaxSpeed = if (maxSpeed > 0f) maxSpeed else 1f
+            val angle = (speed / safeMaxSpeed) * 180f // Map speed to 0-180 degrees
 
             Text(
                 text = "$title Speed",
@@ -156,9 +172,9 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                             .padding(start = 10.dp),
                 )
 
-                // Maximum label (200 Mbps) at right (180°)
+                // Maximum label (dynamic maxSpeed) at right (180°)
                 Text(
-                    text = "200 Mbps",
+                    text = "${safeMaxSpeed.roundToInt()} Mbps",
                     fontSize = 12.sp,
                     modifier =
                         Modifier
@@ -168,7 +184,7 @@ fun Speedometer(result: SpeedTestResultEntity?) {
             }
 
             Text(
-                text = "$speed Mbps",
+                text = "${speed.roundToInt()} Mbps",
                 fontSize = 16.sp,
                 modifier = Modifier.padding(top = 8.dp),
             )
