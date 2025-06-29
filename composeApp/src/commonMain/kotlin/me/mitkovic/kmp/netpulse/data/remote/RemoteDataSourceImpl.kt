@@ -191,16 +191,21 @@ class RemoteDataSourceImpl(
 
         var totalBytes = 0L
         val duration =
-            measureTime {
-                val response = client.get(downloadUrl)
-                val channel = response.bodyAsChannel()
-                val buffer = ByteArray(8192) // 8KB buffer
-                while (!channel.isClosedForRead) {
-                    val bytesRead = channel.readAvailable(buffer, 0, buffer.size)
-                    if (bytesRead == -1) break
-                    totalBytes += bytesRead
-                }
-            }.toDouble(DurationUnit.SECONDS)
+            try {
+                measureTime {
+                    val response = client.get(downloadUrl)
+                    val channel = response.bodyAsChannel()
+                    val buffer = ByteArray(8192)
+                    while (!channel.isClosedForRead) {
+                        val bytesRead = channel.readAvailable(buffer, 0, buffer.size)
+                        if (bytesRead == -1) break
+                        totalBytes += bytesRead
+                    }
+                }.toDouble(DurationUnit.SECONDS)
+            } catch (e: Exception) {
+                logger.logError(RemoteDataSourceImpl::class.simpleName, "Download failed: ${e.message}", e)
+                return -1.0
+            }
 
         val sizeInMB = totalBytes / (1024.0 * 1024.0)
         val speed = if (duration > 0) sizeInMB / duration else -1.0
@@ -224,8 +229,8 @@ class RemoteDataSourceImpl(
         val totalSizeInMB = initialSpeed * timeout
         val sizePerThread = totalSizeInMB / 4
         val selectedSize =
-            imageSizes.filter { it.second <= sizePerThread }.maxByOrNull { it.second }?.first
-                ?: throw IllegalStateException("No suitable image size found")
+            imageSizes.filter { it.second <= sizePerThread && it.second <= 2.0 }.maxByOrNull { it.second }?.first
+                ?: "1000" // Fallback to 1000x1000
         val startTime = Clock.System.now().toEpochMilliseconds()
         while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
             val tasks = List(4) { async(Dispatchers.IO) { downloadTest(server, selectedSize) } }

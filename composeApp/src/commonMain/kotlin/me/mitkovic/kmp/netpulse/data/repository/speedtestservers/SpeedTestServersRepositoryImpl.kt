@@ -28,12 +28,19 @@ class SpeedTestServersRepositoryImpl(
                     emit(Resource.Success(domainResponse))
                 }
             } catch (e: Exception) {
-                logger.logError(
-                    tag = SpeedTestServersRepositoryImpl::class.simpleName,
-                    message = "Error fetching local speed test servers: ${e.message}",
-                    throwable = e,
-                )
-                emit(Resource.Error(e.message ?: "Unknown error", e))
+                if (e is kotlinx.coroutines.CancellationException) {
+                    logger.logDebug(
+                        tag = SpeedTestServersRepositoryImpl::class.simpleName,
+                        message = "Server fetch cancelled",
+                    )
+                } else {
+                    logger.logError(
+                        tag = SpeedTestServersRepositoryImpl::class.simpleName,
+                        message = "Error fetching local speed test servers: ${e.message}",
+                        throwable = e,
+                    )
+                    emit(Resource.Error(e.message ?: "Unknown error", e))
+                }
             }
         }
 
