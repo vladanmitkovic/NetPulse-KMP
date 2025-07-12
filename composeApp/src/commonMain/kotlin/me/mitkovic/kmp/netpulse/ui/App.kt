@@ -20,7 +20,7 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    koinInject<AppViewModel>() // fire init
+    koinInject<AppViewModel>()
     val appLogger: AppLogger = koinInject()
     appLogger.logDebug("App", "App Start from: ${Greeting().greet()}")
 

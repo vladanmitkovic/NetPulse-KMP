@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
-import me.mitkovic.kmp.netpulse.data.local.database.SpeedTestResultEntity
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
-import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepository
+import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 
@@ -33,21 +33,26 @@ sealed class DatabaseUiState {
     object Loading : DatabaseUiState()
 
     data class Success(
-        val result: SpeedTestResultEntity?,
+        val result: TestResult?,
     ) : DatabaseUiState()
 
     data class Error(
         val error: String,
     ) : DatabaseUiState()
+
+    object Completed : DatabaseUiState()
 }
 
 class SpeedTestScreenViewModel(
-    private val netPulseRepository: NetPulseRepository,
+    private val appRepository: AppRepository,
     private val logger: AppLogger,
     serverId: Int,
 ) : ViewModel() {
 
     private var hasRunSpeedTest = false
+
+    private val _databaseUiState = MutableStateFlow<DatabaseUiState>(DatabaseUiState.Loading)
+    val databaseUiState: StateFlow<DatabaseUiState> = _databaseUiState.asStateFlow()
 
     private val _serverUiState = MutableStateFlow<ServerUiState>(ServerUiState.Loading)
     val serverUiState: StateFlow<ServerUiState> = _serverUiState.asStateFlow()
@@ -55,7 +60,7 @@ class SpeedTestScreenViewModel(
     init {
         logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Initialized with serverId: $serverId")
         viewModelScope.launch {
-            val server = netPulseRepository.speedTestServersRepository.getSpeedTestServer(serverId)
+            val server = appRepository.speedTestRepository.getServer(serverId)
             _serverUiState.value =
                 if (server != null) {
                     ServerUiState.Success(server)
@@ -70,9 +75,9 @@ class SpeedTestScreenViewModel(
         }
     }
 
-    val databaseUiState: StateFlow<DatabaseUiState> =
-        netPulseRepository.speedTestServersRepository
-            .observeSpeedTestResults()
+    val databaseFlow: StateFlow<DatabaseUiState> =
+        appRepository.speedTestRepository
+            .observeLatestTestResult()
             .map { resource ->
                 when (resource) {
                     is Resource.Success -> DatabaseUiState.Success(resource.data)
@@ -96,10 +101,12 @@ class SpeedTestScreenViewModel(
         viewModelScope.launch {
             logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Starting speed test for server: ${server.name}")
             try {
-                netPulseRepository.speedTestServersRepository.runSpeedTest(server)
+                appRepository.speedTestRepository.executeSpeedTest(server)
                 logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test completed for server: ${server.name}")
+                _databaseUiState.value = DatabaseUiState.Completed
             } catch (e: Exception) {
                 logger.logError(SpeedTestScreenViewModel::class.simpleName, "Speed test failed: ${e.message}", e)
+                _databaseUiState.value = DatabaseUiState.Error(e.message ?: SOMETHING_WENT_WRONG)
             }
         }
     }
