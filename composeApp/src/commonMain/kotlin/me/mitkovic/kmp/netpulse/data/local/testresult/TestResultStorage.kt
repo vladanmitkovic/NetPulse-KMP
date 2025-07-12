@@ -1,11 +1,10 @@
-package me.mitkovic.kmp.netpulse.data.local.speedtestresults
+package me.mitkovic.kmp.netpulse.data.local.testresult
 
 import kotlinx.coroutines.flow.Flow
-import me.mitkovic.kmp.netpulse.data.local.database.SpeedTestResultEntity
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 
-interface SpeedTestResultsDataSource {
-
-    suspend fun insertSpeedTestSession(
+interface TestResultStorage {
+    suspend fun insertTestSession(
         serverId: String,
         serverUrl: String,
         serverName: String,
@@ -15,12 +14,12 @@ interface SpeedTestResultsDataSource {
         testTimestamp: Long,
     ): Long
 
-    suspend fun insertSpeedTestResult(
+    suspend fun insertTestResult(
         sessionId: Long,
         testType: Int,
         speed: Double,
         resultTimestamp: Long,
     )
 
-    fun getLatestSpeedTestResult(): Flow<SpeedTestResultEntity?>
+    fun getLatestTestResult(): Flow<TestResult?>
 }

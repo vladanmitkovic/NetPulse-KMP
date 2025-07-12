@@ -1,4 +1,5 @@
-CREATE TABLE SpeedTestServersEntity (
+-- Table for server data
+CREATE TABLE Server (
     id TEXT NOT NULL PRIMARY KEY,
     url TEXT NOT NULL,
     lat REAL NOT NULL,
@@ -10,7 +11,8 @@ CREATE TABLE SpeedTestServersEntity (
     host TEXT NOT NULL
 );
 
-CREATE TABLE SpeedTestSessionEntity (
+-- Table for speed test sessions
+CREATE TABLE TestSession (
     sessionId INTEGER PRIMARY KEY AUTOINCREMENT,
     serverId TEXT NOT NULL,
     serverUrl TEXT NOT NULL,
@@ -21,53 +23,64 @@ CREATE TABLE SpeedTestSessionEntity (
     testTimestamp INTEGER NOT NULL
 );
 
-CREATE TABLE SpeedTestResultEntity (
+-- Table for speed test results
+CREATE TABLE TestResult (
     resultId INTEGER PRIMARY KEY AUTOINCREMENT,
     sessionId INTEGER NOT NULL,
     testType INTEGER NOT NULL,
     speed REAL,
     resultTimestamp INTEGER NOT NULL,
-    FOREIGN KEY (sessionId) REFERENCES SpeedTestSessionEntity(sessionId)
+    FOREIGN KEY (sessionId) REFERENCES TestSession(sessionId)
 );
 
-insertSpeedTestServer:
-INSERT OR REPLACE INTO SpeedTestServersEntity (
+-- Insert or replace a server
+insertServer:
+INSERT OR REPLACE INTO Server (
     id, url, lat, lon, name, country, cc, sponsor, host
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
-getSpeedTestServers:
-SELECT * FROM SpeedTestServersEntity;
+-- Get all servers
+getServers:
+SELECT * FROM Server;
 
-getSpeedTestServerById:
-SELECT * FROM SpeedTestServersEntity WHERE id = ?;
+-- Get a single server by ID
+getServerById:
+SELECT * FROM Server WHERE id = ?;
 
-clearSpeedTestServers:
-DELETE FROM SpeedTestServersEntity;
+-- Clear all servers
+clearServers:
+DELETE FROM Server;
 
-insertSpeedTestSession:
-INSERT INTO SpeedTestSessionEntity (
+-- Insert a test session
+insertTestSession:
+INSERT INTO TestSession (
     serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, testTimestamp
 ) VALUES (?, ?, ?, ?, ?, ?, ?);
 
-getSpeedTestSessions:
-SELECT * FROM SpeedTestSessionEntity ORDER BY testTimestamp DESC;
+-- Get all test sessions, ordered by timestamp
+getTestSessions:
+SELECT * FROM TestSession ORDER BY testTimestamp DESC;
 
-getSpeedTestSessionByServerId:
-SELECT * FROM SpeedTestSessionEntity WHERE serverId = ? ORDER BY testTimestamp DESC;
+-- Get sessions by server ID
+getTestSessionByServerId:
+SELECT * FROM TestSession WHERE serverId = ? ORDER BY testTimestamp DESC;
 
-insertSpeedTestResult:
-INSERT INTO SpeedTestResultEntity (
+-- Insert a test result
+insertTestResult:
+INSERT INTO TestResult (
     sessionId, testType, speed, resultTimestamp
 ) VALUES (?, ?, ?, ?);
 
-getSpeedTestResultsBySessionId:
-SELECT * FROM SpeedTestResultEntity WHERE sessionId = ? ORDER BY resultTimestamp;
+-- Get results by session ID
+getTestResultsBySessionId:
+SELECT * FROM TestResult WHERE sessionId = ? ORDER BY resultTimestamp;
 
+-- Get last inserted row ID
 lastInsertRowId:
 SELECT last_insert_rowid();
 
-getLatestSpeedTestResult:
-SELECT *
-FROM SpeedTestResultEntity
+-- Get the latest test result
+getLatestTestResult:
+SELECT * FROM TestResult
 ORDER BY resultTimestamp DESC
 LIMIT 1;

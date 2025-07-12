@@ -29,22 +29,15 @@ fun HomeScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Button(
-                onClick = { viewModel.findNearestServer() },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-            ) {
-                Text("Find Nearest Server")
-            }
-
             when (nearestServerState) {
                 is NearestServerUiState.Success -> {
                     if (nearestServerState.nearestServer != null) {
-                        Text("Nearest Server: ${nearestServerState.nearestServer.name} (${nearestServerState.nearestServer.host})")
-                        Text("") // Spacer
+                        Text(
+                            "Nearest Server: ${nearestServerState.nearestServer.name} (${nearestServerState.nearestServer.host})",
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
                         Button(
                             onClick = { onNavigateToSpeedTest(nearestServerState.nearestServer.id) },
                             modifier =
@@ -61,19 +54,9 @@ fun HomeScreen(
                 }
                 is NearestServerUiState.Loading -> {}
             }
-
-            when (serverState) {
-                is SpeedTestServersUiState.Success -> {
-                    Text("Success")
-                }
-                is SpeedTestServersUiState.Error -> {
-                    Text("Error: ${serverState.error}")
-                }
-                is SpeedTestServersUiState.Loading -> {}
-            }
         }
 
-        if (serverState is SpeedTestServersUiState.Loading || nearestServerState is NearestServerUiState.Loading) {
+        if (serverState is ServersUiState.Loading || nearestServerState is NearestServerUiState.Loading) {
             Column(
                 modifier =
                     Modifier
@@ -83,7 +66,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 CircularProgressIndicator()
-                Text("Loading...", modifier = Modifier.padding(top = 8.dp))
+                Text("Finding nearest server...", modifier = Modifier.padding(top = 8.dp))
             }
         }
     }

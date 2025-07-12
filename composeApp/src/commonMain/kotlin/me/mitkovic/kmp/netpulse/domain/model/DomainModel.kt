@@ -1,6 +1,6 @@
 package me.mitkovic.kmp.netpulse.domain.model
 
-data class SpeedTestServersResponse(
+data class ServersResponse(
     val servers: List<Server>,
 )
 

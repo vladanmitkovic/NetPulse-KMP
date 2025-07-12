@@ -5,24 +5,24 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.model.Resource
-import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepository
+import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 
 class AppViewModel(
-    private val netPulseRepository: NetPulseRepository,
+    private val appRepository: AppRepository,
     private val logger: AppLogger,
 ) : ViewModel() {
 
     init {
         logger.logError(AppViewModel::class.simpleName, "AppViewModel", null)
-        fetchSpeedTestServers()
+        fetchServers()
     }
 
-    fun fetchSpeedTestServers() {
+    fun fetchServers() {
         viewModelScope.launch {
-            netPulseRepository
-                .speedTestServersRepository
-                .refreshSpeedTestServers()
+            appRepository
+                .speedTestRepository
+                .syncServers()
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {

@@ -13,21 +13,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.model.Resource
-import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepository
+import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 
-sealed class SpeedTestServersUiState {
-    object Loading : SpeedTestServersUiState()
+sealed class ServersUiState {
+    object Loading : ServersUiState()
 
     data class Success(
         val servers: List<Server>,
-    ) : SpeedTestServersUiState()
+    ) : ServersUiState()
 
     data class Error(
         val error: String,
         val servers: List<Server> = emptyList(),
-    ) : SpeedTestServersUiState()
+    ) : ServersUiState()
 }
 
 sealed class NearestServerUiState {
@@ -43,7 +43,7 @@ sealed class NearestServerUiState {
 }
 
 class HomeScreenViewModel(
-    private val netPulseRepository: NetPulseRepository,
+    private val appRepository: AppRepository,
     private val logger: AppLogger,
 ) : ViewModel() {
 
@@ -51,41 +51,40 @@ class HomeScreenViewModel(
         logger.logError(HomeScreenViewModel::class.simpleName, "HomeScreenViewModel", null)
     }
 
-    val serverFlow: StateFlow<SpeedTestServersUiState> =
-        netPulseRepository
-            .speedTestServersRepository
-            .getSpeedTestServers()
+    val serverFlow: StateFlow<ServersUiState> =
+        appRepository
+            .speedTestRepository
+            .getServers()
             .onStart { emit(Resource.Loading) }
             .catch { e ->
-                logger.logError(HomeScreenViewModel::class.simpleName, "Error fetching rates", e)
+                logger.logError(HomeScreenViewModel::class.simpleName, "Error fetching servers", e)
                 emit(Resource.Error(e.message ?: SOMETHING_WENT_WRONG))
             }.map { resource ->
                 when (resource) {
-                    is Resource.Success ->
-                        SpeedTestServersUiState.Success(
-                            servers = resource.data?.servers ?: emptyList(),
-                        )
-                    is Resource.Error ->
-                        SpeedTestServersUiState.Error(
-                            error = resource.message,
-                        )
-                    is Resource.Loading -> SpeedTestServersUiState.Loading
+                    is Resource.Success -> {
+                        if (resource.data?.servers?.isNotEmpty() == true) {
+                            findNearestServer()
+                        }
+                        ServersUiState.Success(servers = resource.data?.servers ?: emptyList())
+                    }
+                    is Resource.Error -> ServersUiState.Error(error = resource.message)
+                    is Resource.Loading -> ServersUiState.Loading
                 }
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = SpeedTestServersUiState.Success(emptyList()),
+                initialValue = ServersUiState.Loading,
             )
 
-    private val _nearestServerState = MutableStateFlow<NearestServerUiState>(NearestServerUiState.Success(null))
+    private val _nearestServerState = MutableStateFlow<NearestServerUiState>(NearestServerUiState.Loading)
     val nearestServerUiState: StateFlow<NearestServerUiState> = _nearestServerState.asStateFlow()
 
-    fun findNearestServer() {
+    private fun findNearestServer() {
         logger.logDebug(HomeScreenViewModel::class.simpleName, "findNearestServer")
         viewModelScope.launch {
             try {
                 _nearestServerState.value = NearestServerUiState.Loading
-                val nearestServer = netPulseRepository.speedTestServersRepository.findNearestServer()
+                val nearestServer = appRepository.speedTestRepository.findLowestLatencyServer()
                 _nearestServerState.value =
                     if (nearestServer != null) {
                         NearestServerUiState.Success(nearestServer)
@@ -94,7 +93,7 @@ class HomeScreenViewModel(
                     }
                 logger.logDebug(
                     HomeScreenViewModel::class.simpleName,
-                    "HomeScreenViewModel Nearest server found: ${nearestServer?.name ?: "None"}",
+                    "Nearest server found: ${nearestServer?.name ?: "None"}",
                 )
             } catch (e: Exception) {
                 logger.logError(

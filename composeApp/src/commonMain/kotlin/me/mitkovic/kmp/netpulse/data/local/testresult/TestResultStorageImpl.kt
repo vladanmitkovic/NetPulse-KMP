@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse.data.local.speedtestresults
+package me.mitkovic.kmp.netpulse.data.local.testresult
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -6,15 +6,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
-import me.mitkovic.kmp.netpulse.data.local.database.SpeedTestResultEntity
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 
-class SpeedTestResultsDataSourceImpl(
+class TestResultStorageImpl(
     private val database: NetPulseDatabase,
     private val logger: AppLogger,
-) : SpeedTestResultsDataSource {
+) : TestResultStorage {
 
-    override suspend fun insertSpeedTestSession(
+    override suspend fun insertTestSession(
         serverId: String,
         serverUrl: String,
         serverName: String,
@@ -24,7 +24,7 @@ class SpeedTestResultsDataSourceImpl(
         testTimestamp: Long,
     ): Long {
         database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.insertSpeedTestSession(
+            database.netPulseDatabaseQueries.insertTestSession(
                 serverId = serverId,
                 serverUrl = serverUrl,
                 serverName = serverName,
@@ -39,42 +39,29 @@ class SpeedTestResultsDataSourceImpl(
 
     private val resultInsertedTrigger = Channel<Unit>(capacity = Channel.UNLIMITED)
 
-    override suspend fun insertSpeedTestResult(
+    override suspend fun insertTestResult(
         sessionId: Long,
         testType: Int,
         speed: Double,
         resultTimestamp: Long,
     ) {
-        database.netPulseDatabaseQueries.insertSpeedTestResult(
+        database.netPulseDatabaseQueries.insertTestResult(
             sessionId = sessionId,
             testType = testType.toLong(),
             speed = speed,
             resultTimestamp = resultTimestamp,
         )
-        logger.logDebug("SpeedTestResultsDataSourceImpl", "Triggering insert for sessionId=$sessionId, testType=$testType")
+        logger.logDebug("TestResultDataSourceImpl", "Triggering insert for sessionId=$sessionId, testType=$testType")
         resultInsertedTrigger.trySend(Unit)
     }
 
-    override fun getLatestSpeedTestResult(): Flow<SpeedTestResultEntity?> =
+    override fun getLatestTestResult(): Flow<TestResult?> =
         resultInsertedTrigger
             .receiveAsFlow()
             .onStart { emit(Unit) }
             .map {
-                val entity =
-                    database.netPulseDatabaseQueries
-                        .getLatestSpeedTestResult()
-                        .executeAsOneOrNull()
-                val result =
-                    entity?.let {
-                        SpeedTestResultEntity(
-                            resultId = it.resultId,
-                            sessionId = it.sessionId,
-                            testType = it.testType,
-                            speed = it.speed,
-                            resultTimestamp = it.resultTimestamp,
-                        )
-                    }
-                // logger.logDebug("SpeedTestResultsDataSourceImpl", "Emitting result: $result")
-                result
+                database.netPulseDatabaseQueries
+                    .getLatestTestResult()
+                    .executeAsOneOrNull()
             }
 }

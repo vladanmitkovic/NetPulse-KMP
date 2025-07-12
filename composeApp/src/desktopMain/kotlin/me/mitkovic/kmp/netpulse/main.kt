@@ -4,22 +4,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import me.mitkovic.kmp.netpulse.di.initKoin
 import me.mitkovic.kmp.netpulse.ui.App
-import org.koin.core.component.KoinComponent
 
 fun main() {
     initKoin()
-    Main().start()
-}
-
-class Main : KoinComponent {
-    fun start() {
-        application {
-            Window(
-                onCloseRequest = ::exitApplication,
-                title = "NetPulse-KMP",
-            ) {
-                App()
-            }
+    application {
+        Window(onCloseRequest = ::exitApplication, title = "NetPulse-KMP") {
+            App()
         }
     }
 }

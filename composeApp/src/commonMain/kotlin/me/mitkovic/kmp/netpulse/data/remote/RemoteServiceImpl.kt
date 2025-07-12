@@ -11,6 +11,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.headers
 import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -21,21 +22,25 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
 import me.mitkovic.kmp.netpulse.common.Constants
-import me.mitkovic.kmp.netpulse.data.local.LocalDataSource
+import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
-import me.mitkovic.kmp.netpulse.data.model.SpeedTestServersResponse
+import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.util.calculateAverage
+import me.mitkovic.kmp.netpulse.util.calculateJitter
+import me.mitkovic.kmp.netpulse.util.calculatePacketLoss
 import nl.adaptivity.xmlutil.serialization.XML
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
-class RemoteDataSourceImpl(
+class RemoteServiceImpl(
     private val client: HttpClient,
     private val logger: AppLogger,
     private val xmlFormat: XML,
-) : RemoteDataSource {
+) : RemoteService {
 
     private val imageSizes =
         listOf(
@@ -54,33 +59,28 @@ class RemoteDataSourceImpl(
     private val initialImageSize = "1000"
     private val initialPayloadSize = 128 * 1024 // 128 KB
 
-    override suspend fun getSpeedTestServers(): Flow<Resource<SpeedTestServersResponse>> =
+    override suspend fun fetchSpeedTestServers(): Flow<Resource<ServersResponse>> =
         flow {
             emit(Resource.Loading)
             try {
-                // Fetch raw XML as String
                 val xmlString: String =
                     client
                         .get("${Constants.BASE_URL}/speedtest-servers-static.php") {
                             parameter("threads", "4")
                         }.body<String>()
-
-                // Parse with xmlutil
-                val resp: SpeedTestServersResponse =
+                val resp: ServersResponse =
                     xmlFormat.decodeFromString(
-                        deserializer = SpeedTestServersResponse.serializer(),
+                        deserializer = ServersResponse.serializer(),
                         string = xmlString,
                     )
-
                 logger.logDebug(
-                    tag = RemoteDataSourceImpl::class.simpleName,
+                    tag = RemoteServiceImpl::class.simpleName,
                     message = "resp: $resp",
                 )
-
                 emit(Resource.Success(resp))
             } catch (e: Throwable) {
                 logger.logError(
-                    tag = RemoteDataSourceImpl::class.simpleName,
+                    tag = RemoteServiceImpl::class.simpleName,
                     message = "Error fetching XML: ${e.message}",
                     throwable = e,
                 )
@@ -88,51 +88,115 @@ class RemoteDataSourceImpl(
             }
         }
 
+    /**
+     * Pings a server multiple times using HEAD requests and returns aggregated latency metrics.
+     * @param server The server to ping.
+     * @param count The number of ping attempts.
+     * @return A PingResult containing average latency (ms), jitter (ms), packet loss (%), and failed request count.
+     */
+    private suspend fun pingServer(
+        server: Server,
+        count: Int = 3,
+    ): PingResult =
+        coroutineScope {
+            val pingUrl = "http://${server.host}"
+            val latencies = mutableListOf<Double>()
+            var failedRequests = 0
+
+            // Perform pings sequentially to ensure accurate jitter calculation
+            for (i in 0 until count) {
+                try {
+                    val latency =
+                        measureTime {
+                            val response: HttpResponse = client.head(pingUrl)
+                            if (response.status.value !in 200..299) {
+                                throw Exception("Invalid response: ${response.status}")
+                            }
+                        }.inWholeMilliseconds.toDouble()
+                    if (latency > 0) {
+                        latencies.add(latency)
+                    } else {
+                        failedRequests++
+                    }
+                } catch (e: Exception) {
+                    logger.logError(
+                        tag = RemoteServiceImpl::class.simpleName,
+                        message = "Ping failed for ${server.host}: ${e.message}",
+                        throwable = e,
+                    )
+                    failedRequests++
+                }
+            }
+
+            // Calculate average latency
+            val averageLatency = calculateAverage(latencies)
+
+            // Calculate jitter
+            val jitter = calculateJitter(latencies)
+
+            // Calculate packet loss
+            val packetLoss = calculatePacketLoss(totalRequests = count, failedRequests = failedRequests)
+
+            logger.logDebug(
+                tag = RemoteServiceImpl::class.simpleName,
+                message = "Ping results for ${server.host}: averageLatency=$averageLatency ms, jitter=$jitter ms, packetLoss=$packetLoss%, failedRequests=$failedRequests, latencies=$latencies",
+            )
+
+            PingResult(averageLatency, jitter, packetLoss, failedRequests)
+        }
+
     override suspend fun findNearestServer(servers: List<Server>): Server? {
         if (servers.isEmpty()) {
-            logger.logDebug(RemoteDataSourceImpl::class.simpleName, "No servers available")
+            logger.logDebug(RemoteServiceImpl::class.simpleName, "No servers available")
             return null
         }
 
-        var lowestLatency = Double.MAX_VALUE
-        var nearestServer: Server? = null
+        // Store ping results for all servers
+        val pingResults = mutableListOf<Pair<Server, PingResult>>()
 
         for (server in servers) {
             try {
-                val pingUrl = "http://${server.host}"
-                val latency =
-                    measureTime {
-                        val response: HttpResponse = client.head(pingUrl)
-                        if (response.status.value !in 200..299) {
-                            throw Exception("Invalid response: ${response.status}")
-                        }
-                    }.inWholeMilliseconds.toDouble()
+                // Ping the server 3 times
+                val pingResult = pingServer(server, count = 3)
+                pingResults.add(server to pingResult)
 
-                logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Latency: $latency ms for server: ${server.host}")
-                if (latency > 0 && latency < lowestLatency) {
-                    lowestLatency = latency
-                    nearestServer = server
-                }
+                logger.logDebug(
+                    tag = RemoteServiceImpl::class.simpleName,
+                    message = "Server: ${server.host}, Average Latency: ${pingResult.averageLatency} ms, Jitter: ${pingResult.jitter} ms, Packet Loss: ${pingResult.packetLoss}%, Failed Requests: ${pingResult.failedRequests}",
+                )
             } catch (e: Exception) {
-                logger.logError(RemoteDataSourceImpl::class.simpleName, "Failed to ping server ${server.host}: ${e.message}", e)
+                logger.logError(
+                    tag = RemoteServiceImpl::class.simpleName,
+                    message = "Failed to evaluate server ${server.host}: ${e.message}",
+                    throwable = e,
+                )
             }
         }
 
+        // Find server with lowest average latency
+        val bestResult =
+            pingResults
+                .filter { it.second.averageLatency > 0 }
+                .minByOrNull { it.second.averageLatency }
+
+        val nearestServer = bestResult?.first
+        val lowestLatency = bestResult?.second?.averageLatency ?: Double.MAX_VALUE
+
         logger.logDebug(
-            RemoteDataSourceImpl::class.simpleName,
-            "Nearest server: ${nearestServer?.name ?: "None"} with latency $lowestLatency ms",
+            tag = RemoteServiceImpl::class.simpleName,
+            message = "Nearest server: ${nearestServer?.name ?: "None"} with average latency $lowestLatency ms",
         )
+
         return nearestServer
     }
 
-    override suspend fun runSpeedTest(
+    override suspend fun performSpeedTest(
         server: Server,
-        localDataSource: LocalDataSource,
+        localStorage: LocalStorage,
     ) = coroutineScope {
         try {
-            // Save session to SpeedTestSessionEntity
             val sessionId =
-                localDataSource.speedTestResults.insertSpeedTestSession(
+                localStorage.testResultStorage.insertTestSession(
                     serverId = server.id.toString(),
                     serverUrl = server.url,
                     serverName = server.name,
@@ -141,38 +205,34 @@ class RemoteDataSourceImpl(
                     serverHost = server.host,
                     testTimestamp = Clock.System.now().toEpochMilliseconds(),
                 )
-            logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Created session with ID: $sessionId")
-
-            // Run download test (10 seconds)
-            logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Starting download test")
+            logger.logDebug(RemoteServiceImpl::class.simpleName, "Created session with ID: $sessionId")
+            logger.logDebug(RemoteServiceImpl::class.simpleName, "Starting download test")
             downloadTestMultiThread(server = server, initialImageSize = initialImageSize, timeout = 10.0) { speed ->
                 if (speed >= 0) {
-                    localDataSource.speedTestResults.insertSpeedTestResult(
+                    localStorage.testResultStorage.insertTestResult(
                         sessionId = sessionId,
-                        testType = 1, // Download
-                        speed = speed * 8, // Convert MB/s to Mbps
+                        testType = 1,
+                        speed = speed * 8,
                         resultTimestamp = Clock.System.now().toEpochMilliseconds(),
                     )
-                    logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Download speed: $speed MB/s")
+                    logger.logDebug(RemoteServiceImpl::class.simpleName, "Download speed: $speed MB/s")
                 }
             }
-
-            // Run upload test (5 seconds)
-            logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Starting upload test")
+            logger.logDebug(RemoteServiceImpl::class.simpleName, "Starting upload test")
             uploadTestMultiThread(server = server, initialPayloadSize = initialPayloadSize, timeout = 5.0) { speed ->
                 if (speed >= 0) {
-                    localDataSource.speedTestResults.insertSpeedTestResult(
+                    localStorage.testResultStorage.insertTestResult(
                         sessionId = sessionId,
-                        testType = 2, // Upload
-                        speed = speed * 8, // Convert MB/s to Mbps
+                        testType = 2,
+                        speed = speed * 8,
                         resultTimestamp = Clock.System.now().toEpochMilliseconds(),
                     )
-                    logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Upload speed: $speed MB/s")
+                    logger.logDebug(RemoteServiceImpl::class.simpleName, "Upload speed: $speed MB/s")
                 }
             }
         } catch (e: Exception) {
             logger.logError(
-                RemoteDataSourceImpl::class.simpleName,
+                RemoteServiceImpl::class.simpleName,
                 "Speed test failed: ${e.message}",
                 e,
             )
@@ -187,13 +247,19 @@ class RemoteDataSourceImpl(
         val timestamp = Clock.System.now().toEpochMilliseconds() / 1000
         val randomId = Random.nextInt(100000, 999999)
         val downloadUrl = server.url.replace("upload.php", "random${imageSize}x$imageSize.jpg?x=$timestamp&y=$randomId")
-        logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Download URL: $downloadUrl")
-
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Download URL: $downloadUrl")
         var totalBytes = 0L
         val duration =
             try {
                 measureTime {
-                    val response = client.get(downloadUrl)
+                    val response =
+                        client.get(downloadUrl) {
+                            headers { append("Connection", "keep-alive") }
+                        }
+                    logger.logDebug(
+                        RemoteServiceImpl::class.simpleName,
+                        "Response headers: ${response.headers.entries().joinToString { "${it.key}: ${it.value.joinToString()}" }}",
+                    )
                     val channel = response.bodyAsChannel()
                     val buffer = ByteArray(8192)
                     while (!channel.isClosedForRead) {
@@ -203,14 +269,13 @@ class RemoteDataSourceImpl(
                     }
                 }.toDouble(DurationUnit.SECONDS)
             } catch (e: Exception) {
-                logger.logError(RemoteDataSourceImpl::class.simpleName, "Download failed: ${e.message}", e)
+                logger.logError(RemoteServiceImpl::class.simpleName, "Download failed: ${e.message}", e)
                 return -1.0
             }
-
         val sizeInMB = totalBytes / (1024.0 * 1024.0)
         val speed = if (duration > 0) sizeInMB / duration else -1.0
         logger.logDebug(
-            RemoteDataSourceImpl::class.simpleName,
+            RemoteServiceImpl::class.simpleName,
             "Downloaded $sizeInMB MB in $duration seconds, speed: $speed MB/s",
         )
         return speed
@@ -224,16 +289,19 @@ class RemoteDataSourceImpl(
     ) = coroutineScope {
         val initialSpeed = downloadTest(server, initialImageSize)
         if (initialSpeed < 0) return@coroutineScope
-        logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Initial download speed: $initialSpeed MB/s")
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial download speed: $initialSpeed MB/s")
         onResult(initialSpeed)
         val totalSizeInMB = initialSpeed * timeout
         val sizePerThread = totalSizeInMB / 4
         val selectedSize =
-            imageSizes.filter { it.second <= sizePerThread && it.second <= 2.0 }.maxByOrNull { it.second }?.first
-                ?: "1000" // Fallback to 1000x1000
+            imageSizes
+                .filter { it.second <= sizePerThread }
+                .maxByOrNull { it.second }
+                ?.first
+                ?: throw Exception("No suitable image size found for speed $initialSpeed MB/s")
         val startTime = Clock.System.now().toEpochMilliseconds()
         while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
-            val tasks = List(4) { async(Dispatchers.IO) { downloadTest(server, selectedSize) } }
+            val tasks = List(2) { async(Dispatchers.IO) { downloadTest(server, selectedSize) } }
             tasks.awaitAll().forEach { speed -> if (speed >= 0) onResult(speed) }
         }
     }
@@ -243,24 +311,27 @@ class RemoteDataSourceImpl(
         payloadSize: Int,
     ): Double {
         val uploadUrl = server.url
-        logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Upload URL: $uploadUrl")
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Upload URL: $uploadUrl")
         val payload = ByteArray(payloadSize) { 0 }
-
         val duration =
             measureTime {
                 val response =
                     client.post(uploadUrl) {
+                        headers { append("Connection", "keep-alive") }
                         setBody(ByteArrayContent(payload, ContentType.Application.OctetStream))
                     }
+                logger.logDebug(
+                    RemoteServiceImpl::class.simpleName,
+                    "Response headers: ${response.headers.entries().joinToString { "${it.key}: ${it.value.joinToString()}" }}",
+                )
                 if (response.status.value !in 200..299) {
                     throw Exception("Upload failed with status: ${response.status}")
                 }
-            }.toDouble(DurationUnit.SECONDS) // Replace .inSeconds with .toDouble(DurationUnit.SECONDS)
-
+            }.toDouble(DurationUnit.SECONDS)
         val sizeInMB = payload.size / (1024.0 * 1024.0)
         val speed = if (duration > 0) sizeInMB / duration else -1.0
         logger.logDebug(
-            RemoteDataSourceImpl::class.simpleName,
+            RemoteServiceImpl::class.simpleName,
             "Uploaded $sizeInMB MB in $duration seconds, speed: $speed MB/s",
         )
         return speed
@@ -274,7 +345,7 @@ class RemoteDataSourceImpl(
     ) = coroutineScope {
         val initialSpeed = uploadTest(server, initialPayloadSize)
         if (initialSpeed < 0) return@coroutineScope
-        logger.logDebug(RemoteDataSourceImpl::class.simpleName, "Initial upload speed: $initialSpeed MB/s")
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial upload speed: $initialSpeed MB/s")
         onResult(initialSpeed)
         val totalSizeInMB = initialSpeed * timeout
         val totalSizeInBytes = (totalSizeInMB * 1024 * 1024).toInt()

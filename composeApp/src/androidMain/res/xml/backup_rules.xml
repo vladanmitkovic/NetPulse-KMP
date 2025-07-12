@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="database" path="net_pulse.db"/>
+    <exclude domain="database" path="net_pulse_sec.db"/>
+</full-backup-content>

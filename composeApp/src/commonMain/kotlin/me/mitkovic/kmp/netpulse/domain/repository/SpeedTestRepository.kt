@@ -1,0 +1,21 @@
+package me.mitkovic.kmp.netpulse.domain.repository
+
+import kotlinx.coroutines.flow.Flow
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
+import me.mitkovic.kmp.netpulse.data.model.Resource
+import me.mitkovic.kmp.netpulse.domain.model.Server
+import me.mitkovic.kmp.netpulse.domain.model.ServersResponse
+
+interface SpeedTestRepository {
+    fun getServers(): Flow<Resource<ServersResponse?>>
+
+    fun syncServers(): Flow<Resource<ServersResponse?>>
+
+    suspend fun findLowestLatencyServer(): Server?
+
+    suspend fun getServer(serverId: Int): Server?
+
+    suspend fun executeSpeedTest(server: Server)
+
+    fun observeLatestTestResult(): Flow<Resource<TestResult?>>
+}
