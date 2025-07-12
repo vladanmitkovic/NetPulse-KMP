@@ -1,12 +1,31 @@
 package me.mitkovic.kmp.netpulse.data.model
 
+import kotlinx.serialization.Serializable
+import nl.adaptivity.xmlutil.serialization.XmlChildrenName
+import nl.adaptivity.xmlutil.serialization.XmlOtherAttributes
+import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import me.mitkovic.kmp.netpulse.domain.model.Server as DomainServer
-import me.mitkovic.kmp.netpulse.domain.model.SpeedTestServersResponse as DomainServersResponse
+import me.mitkovic.kmp.netpulse.domain.model.ServersResponse as DomainServersResponse
+
+@Serializable
+@XmlSerialName("settings", "", "")
+data class ServersResponse(
+    @XmlSerialName("servers", "", "")
+    @XmlChildrenName("server")
+    val servers: List<Server>,
+)
+
+@Serializable
+@XmlSerialName("server", "", "")
+data class Server(
+    @XmlOtherAttributes
+    val attrs: Map<String, String>,
+)
 
 /**
  * Convert the XML‐parsed data model into your domain model.
  */
-fun SpeedTestServersResponse.toDomainModel(): DomainServersResponse =
+fun ServersResponse.toDomainModel(): DomainServersResponse =
     DomainServersResponse(
         servers = this.servers.map { it.toDomainModel() },
     )
@@ -14,21 +33,18 @@ fun SpeedTestServersResponse.toDomainModel(): DomainServersResponse =
 private fun Server.toDomainModel(): DomainServer =
     DomainServer(
         url = attrs["url"] ?: error("Missing url"),
-        lat = attrs["lat"] ?.toDouble() ?: error("Missing lat"),
-        lon = attrs["lon"] ?.toDouble() ?: error("Missing lon"),
+        lat = attrs["lat"]?.toDouble() ?: error("Missing lat"),
+        lon = attrs["lon"]?.toDouble() ?: error("Missing lon"),
         name = attrs["name"] ?: error("Missing name"),
         country = attrs["country"] ?: error("Missing country"),
         cc = attrs["cc"] ?: error("Missing cc"),
         sponsor = attrs["sponsor"] ?: error("Missing sponsor"),
-        id = attrs["id"] ?.toInt() ?: error("Missing id"),
+        id = attrs["id"]?.toInt() ?: error("Missing id"),
         host = attrs["host"] ?: error("Missing host"),
     )
 
-/**
- * Convert back from your domain model into the XML data model.
- */
-fun DomainServersResponse.toDataModel(): SpeedTestServersResponse =
-    SpeedTestServersResponse(
+fun DomainServersResponse.toDataModel(): ServersResponse =
+    ServersResponse(
         servers = this.servers.map { it.toDataModel() },
     )
 

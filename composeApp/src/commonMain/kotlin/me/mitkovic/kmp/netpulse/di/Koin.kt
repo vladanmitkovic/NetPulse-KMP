@@ -1,11 +1,11 @@
 package me.mitkovic.kmp.netpulse.di
 
-import me.mitkovic.kmp.netpulse.data.local.LocalDataSource
-import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSource
-import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepository
-import me.mitkovic.kmp.netpulse.data.repository.NetPulseRepositoryImpl
-import me.mitkovic.kmp.netpulse.data.repository.speedtestservers.SpeedTestServersRepositoryImpl
-import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestServersRepository
+import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.remote.RemoteService
+import me.mitkovic.kmp.netpulse.data.repository.AppRepository
+import me.mitkovic.kmp.netpulse.data.repository.AppRepositoryImpl
+import me.mitkovic.kmp.netpulse.data.repository.speedtest.SpeedTestRepositoryImpl
+import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestRepository
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.platform.Platform
 import me.mitkovic.kmp.netpulse.platform.getPlatform
@@ -20,26 +20,31 @@ val commonModule =
             getPlatform()
         }
 
-        single<SpeedTestServersRepository> {
-            SpeedTestServersRepositoryImpl(
-                localDataSource = get<LocalDataSource>(),
-                remoteDataSource = get<RemoteDataSource>(),
+        single<SpeedTestRepository> {
+            SpeedTestRepositoryImpl(
+                localStorage = get<LocalStorage>(),
+                remoteService = get<RemoteService>(),
                 logger = get<AppLogger>(),
             )
         }
 
-        single<NetPulseRepository> {
-            NetPulseRepositoryImpl(
-                speedTestServersRepository = get<SpeedTestServersRepository>(),
+        single<AppRepository> {
+            AppRepositoryImpl(
+                speedTestRepository = get<SpeedTestRepository>(),
             )
         }
     }
 
 expect fun platformModule(): Module
 
-fun initKoin(appDeclaration: KoinApplication.() -> Unit = {}) {
-    startKoin {
-        modules(commonModule, platformModule(), viewModelModule)
-        appDeclaration()
+fun initKoin(koinContext: KoinApplication.() -> Unit = {}) {
+    try {
+        startKoin {
+            koinContext()
+            modules(commonModule, platformModule(), viewModelModule)
+        }
+    } catch (e: Exception) {
+        println("Koin init failed: ${e.message}") // Cross-platform fallback
+        throw RuntimeException("Koin init failed", e)
     }
 }

@@ -33,6 +33,11 @@ fun AppNavHost(navHostController: NavController) {
             val speedTestViewModel: SpeedTestScreenViewModel = koinInject { parametersOf(serverId) }
             SpeedTestScreen(
                 viewModel = speedTestViewModel,
+                onBackClick = {
+                    navHostController.navigate(
+                        Screen.Home,
+                    )
+                },
             )
         }
     }

@@ -1,88 +1,51 @@
 package me.mitkovic.kmp.netpulse.di
 
-import android.util.Log
-import androidx.sqlite.db.SupportSQLiteDatabase
-import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.DEFAULT
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.xml.xml
-import me.mitkovic.kmp.netpulse.data.local.LocalDataSource
-import me.mitkovic.kmp.netpulse.data.local.LocalDataSourceImpl
+import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.local.LocalStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
-import me.mitkovic.kmp.netpulse.data.local.speedtestresults.SpeedTestResultsDataSource
-import me.mitkovic.kmp.netpulse.data.local.speedtestresults.SpeedTestResultsDataSourceImpl
-import me.mitkovic.kmp.netpulse.data.local.speedtestservers.SpeedTestServersDataSource
-import me.mitkovic.kmp.netpulse.data.local.speedtestservers.SpeedTestServersDataSourceImpl
-import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSource
-import me.mitkovic.kmp.netpulse.data.remote.RemoteDataSourceImpl
+import me.mitkovic.kmp.netpulse.data.local.server.ServerStorage
+import me.mitkovic.kmp.netpulse.data.local.server.ServerStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorage
+import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorageImpl
+import me.mitkovic.kmp.netpulse.data.remote.RemoteService
+import me.mitkovic.kmp.netpulse.data.remote.RemoteServiceImpl
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.logging.AppLoggerImpl
 import nl.adaptivity.xmlutil.XmlDeclMode
 import nl.adaptivity.xmlutil.core.XmlVersion
 import nl.adaptivity.xmlutil.serialization.XML
+import okhttp3.ConnectionPool
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import java.util.concurrent.TimeUnit
 
 actual fun platformModule() =
     module {
         single<AppLogger> { AppLoggerImpl() }
 
         single<SqlDriver> {
-            // val context = androidContext()
+            val context = androidContext()
 
             // Delete the corrupted database
-            // context.deleteDatabase("net_pulse.db")
+            context.deleteDatabase("net_pulse.db")
 
             val driver =
                 AndroidSqliteDriver(
                     schema = NetPulseDatabase.Schema,
                     context = androidContext(),
-                    name = "net_pulse.db",
-                    callback =
-                        object : AndroidSqliteDriver.Callback(NetPulseDatabase.Schema) {
-                            override fun onOpen(db: SupportSQLiteDatabase) {
-                                Log.d("DatabaseInit", "Database opened successfully")
-                                db.setForeignKeyConstraintsEnabled(true)
-                            }
-
-                            override fun onCreate(db: SupportSQLiteDatabase) {
-                                Log.d("DatabaseInit", "Database created successfully")
-                                super.onCreate(db)
-                            }
-
-                            override fun onUpgrade(
-                                db: SupportSQLiteDatabase,
-                                oldVersion: Int,
-                                newVersion: Int,
-                            ) {
-                                Log.d("DatabaseInit", "Database upgraded from $oldVersion to $newVersion")
-                                super.onUpgrade(db, oldVersion, newVersion)
-                            }
-                        },
+                    name = "net_pulse_third.db",
                 )
-
-            // Test if schema creation worked
-            try {
-                driver.executeQuery(
-                    identifier = null,
-                    sql = "SELECT name FROM sqlite_master WHERE type='table'",
-                    mapper = { cursor ->
-                        val tables = mutableListOf<String>()
-                        while (cursor.next().value) {
-                            tables.add(cursor.getString(0) ?: "")
-                        }
-                        Log.d("DatabaseInit", "Tables found: $tables")
-                        QueryResult.Value(tables)
-                    },
-                    parameters = 0,
-                ) {}
-            } catch (e: Exception) {
-                Log.e("DatabaseInit", "Error checking tables", e)
-            }
-
             driver
         }
 
@@ -92,21 +55,21 @@ actual fun platformModule() =
             )
         }
 
-        single<SpeedTestServersDataSource> {
-            SpeedTestServersDataSourceImpl(database = get<NetPulseDatabase>())
+        single<ServerStorage> {
+            ServerStorageImpl(database = get<NetPulseDatabase>())
         }
 
-        single<SpeedTestResultsDataSource> {
-            SpeedTestResultsDataSourceImpl(
+        single<TestResultStorage> {
+            TestResultStorageImpl(
                 database = get<NetPulseDatabase>(),
                 logger = get<AppLogger>(),
             )
         }
 
-        single<LocalDataSource> {
-            LocalDataSourceImpl(
-                speedTestResults = get<SpeedTestResultsDataSource>(),
-                speedTestServers = get<SpeedTestServersDataSource>(),
+        single<LocalStorage> {
+            LocalStorageImpl(
+                testResultStorage = get<TestResultStorage>(),
+                serverStorage = get<ServerStorage>(),
             )
         }
 
@@ -125,11 +88,28 @@ actual fun platformModule() =
                 install(ContentNegotiation) {
                     xml(xmlFormat)
                 }
+                install(HttpTimeout) {
+                    connectTimeoutMillis = 10_000
+                    requestTimeoutMillis = 15_000
+                    socketTimeoutMillis = 15_000
+                }
+                install(Logging) {
+                    logger = Logger.DEFAULT
+                    level = LogLevel.HEADERS
+                }
+                engine {
+                    config {
+                        connectionPool(ConnectionPool(maxIdleConnections = 50, keepAliveDuration = 15, TimeUnit.SECONDS))
+                        connectTimeout(10, TimeUnit.SECONDS)
+                        readTimeout(15, TimeUnit.SECONDS)
+                        writeTimeout(15, TimeUnit.SECONDS)
+                    }
+                }
             }
         }
 
-        single<RemoteDataSource> {
-            RemoteDataSourceImpl(
+        single<RemoteService> {
+            RemoteServiceImpl(
                 client = get<HttpClient>(),
                 logger = get<AppLogger>(),
                 xmlFormat = get<XML>(),

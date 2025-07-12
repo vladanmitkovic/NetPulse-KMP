@@ -4,15 +4,23 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,17 +31,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.mitkovic.kmp.netpulse.data.local.database.SpeedTestResultEntity
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
-fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
+fun SpeedTestScreen(
+    viewModel: SpeedTestScreenViewModel,
+    onBackClick: () -> Unit,
+) {
     val serverState by viewModel.serverUiState.collectAsStateWithLifecycle()
-    val serverStateValue = serverState // Enable smart cast
-    val databaseState by viewModel.databaseUiState.collectAsStateWithLifecycle()
-    val databaseStateValue = databaseState // Capture value to enable smart cast
+    val serverStateValue = serverState
+    val databaseState by viewModel.databaseFlow.collectAsStateWithLifecycle() // Changed to databaseFlow
+    val databaseStateValue = databaseState
+    val isTestCompleted by viewModel.databaseUiState.collectAsStateWithLifecycle() // Added for completion check
 
     Column(
         modifier =
@@ -43,6 +55,20 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
+        IconButton(
+            onClick = { onBackClick() },
+            modifier =
+                Modifier
+                    .padding(top = 16.dp, start = 16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+
         when (serverStateValue) {
             is ServerUiState.Loading -> {
                 Text("Loading server...", modifier = Modifier.padding(16.dp))
@@ -67,10 +93,13 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                 Text("Loading result...", modifier = Modifier.padding(top = 8.dp))
             }
             is DatabaseUiState.Success -> {
-                Speedometer(result = databaseStateValue.result)
+                Speedometer(result = databaseStateValue.result, isTestCompleted = isTestCompleted is DatabaseUiState.Completed)
             }
             is DatabaseUiState.Error -> {
                 Text("Result Error: ${databaseStateValue.error}", modifier = Modifier.padding(top = 8.dp))
+            }
+            is DatabaseUiState.Completed -> {
+                Speedometer(result = null, isTestCompleted = true)
             }
         }
     }
@@ -79,10 +108,12 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
 private fun toRadians(degrees: Double): Double = degrees * (kotlin.math.PI / 180.0)
 
 @Composable
-fun Speedometer(result: SpeedTestResultEntity?) {
-    // Store first download and upload speeds persistently
-    val firstDownloadSpeed = remember { mutableStateOf(0f) }
-    val firstUploadSpeed = remember { mutableStateOf(0f) }
+fun Speedometer(
+    result: TestResult?,
+    isTestCompleted: Boolean,
+) {
+    var lastDownloadSpeed by remember { mutableStateOf<Float?>(null) }
+    var lastUploadSpeed by remember { mutableStateOf<Float?>(null) }
 
     Column(
         modifier =
@@ -91,24 +122,33 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                 .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (result == null) {
+        if (isTestCompleted && lastDownloadSpeed != null && lastUploadSpeed != null) {
+            // Show last download and upload speeds when tests are complete
+            Text(
+                text = "Download Speed: ${lastDownloadSpeed!!.roundToInt()} Mbps",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            Text(
+                text = "Upload Speed: ${lastUploadSpeed!!.roundToInt()} Mbps",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+            )
+        } else if (result == null) {
             Text("No result available")
         } else {
-            val title = if (result.testType == 1L) "Download" else "Upload"
+            // Update last speeds and show speedometer
             val speed = result.speed?.toFloat() ?: 0f
-
-            // Update first speeds if this is the first download or upload
-            if (result.testType == 1L && firstDownloadSpeed.value == 0f) {
-                firstDownloadSpeed.value = speed
-            } else if (result.testType == 2L && firstUploadSpeed.value == 0f) {
-                firstUploadSpeed.value = speed
+            if (result.testType == 1L) {
+                lastDownloadSpeed = speed
+            } else if (result.testType == 2L) {
+                lastUploadSpeed = speed
             }
 
-            // Calculate maxSpeed as max of first download/upload + 20% buffer
-            val maxSpeed = maxOf(firstDownloadSpeed.value, firstUploadSpeed.value) * 1.2f
-            // Ensure maxSpeed is at least 1 to avoid division by zero
-            val safeMaxSpeed = if (maxSpeed > 0f) maxSpeed else 1f
-            val angle = (speed / safeMaxSpeed) * 180f // Map speed to 0-180 degrees
+            val title = if (result.testType == 1L) "Download" else "Upload"
+            val maxSpeed = 1000f // Fixed maximum of 1000 Mbps
+            val angle = (speed / maxSpeed) * 180f // Map speed to 0-180 degrees
 
             Text(
                 text = "$title Speed",
@@ -117,15 +157,34 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "0 Mbps",
+                    fontSize = 12.sp,
+                )
+                Text(
+                    text = "1000 Mbps",
+                    fontSize = 12.sp,
+                )
+            }
+
             Box(
-                modifier = Modifier.size(220.dp), // Increased size to accommodate labels
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Canvas(
                     modifier =
                         Modifier
-                            .size(200.dp)
-                            .padding(16.dp),
+                            .fillMaxWidth()
+                            .aspectRatio(1f),
+                    // Square proportional to width
                 ) {
                     // Draw background arc (full gauge)
                     drawArc(
@@ -133,9 +192,9 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                         startAngle = 180f,
                         sweepAngle = 180f,
                         useCenter = false,
-                        topLeft = Offset(0f, 0f),
-                        size = Size(size.width, size.height),
-                        style = Stroke(width = 10f),
+                        topLeft = Offset(10f, 10f), // Offset for stroke width
+                        size = Size(size.width - 20f, size.height - 20f), // Adjusted for stroke
+                        style = Stroke(width = 20f),
                     )
 
                     // Draw speed arc (filled portion)
@@ -144,13 +203,13 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                         startAngle = 180f,
                         sweepAngle = angle,
                         useCenter = false,
-                        topLeft = Offset(0f, 0f),
-                        size = Size(size.width, size.height),
-                        style = Stroke(width = 10f),
+                        topLeft = Offset(10f, 10f), // Offset for stroke width
+                        size = Size(size.width - 20f, size.height - 20f), // Adjusted for stroke
+                        style = Stroke(width = 20f),
                     )
 
                     // Draw needle
-                    val needleLength = size.width / 2.5f
+                    val needleLength = size.width / 2f // Reaches arc edge
                     val needleAngle = toRadians((180 + angle).toDouble()).toFloat()
                     val needleEndX = (size.width / 2 + needleLength * cos(needleAngle))
                     val needleEndY = (size.height / 2 + needleLength * sin(needleAngle))
@@ -158,29 +217,9 @@ fun Speedometer(result: SpeedTestResultEntity?) {
                         color = Color.Black,
                         start = Offset(size.width / 2, size.height / 2),
                         end = Offset(needleEndX, needleEndY),
-                        strokeWidth = 5f,
+                        strokeWidth = 10f,
                     )
                 }
-
-                // Minimum label (0 Mbps) at left (0°)
-                Text(
-                    text = "0 Mbps",
-                    fontSize = 12.sp,
-                    modifier =
-                        Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 10.dp),
-                )
-
-                // Maximum label (dynamic maxSpeed) at right (180°)
-                Text(
-                    text = "${safeMaxSpeed.roundToInt()} Mbps",
-                    fontSize = 12.sp,
-                    modifier =
-                        Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 10.dp),
-                )
             }
 
             Text(

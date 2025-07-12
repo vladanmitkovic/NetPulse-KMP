@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse.data.local.speedtestservers
+package me.mitkovic.kmp.netpulse.data.local.server
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
@@ -7,19 +7,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
 import me.mitkovic.kmp.netpulse.data.model.Server
-import me.mitkovic.kmp.netpulse.data.model.SpeedTestServersResponse
+import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 
-open class SpeedTestServersDataSourceImpl(
+open class ServerStorageImpl(
     private val database: NetPulseDatabase,
-) : SpeedTestServersDataSource {
+) : ServerStorage {
 
-    override suspend fun saveSpeedTestServers(response: SpeedTestServersResponse) {
+    override suspend fun storeServers(response: ServersResponse) {
         database.netPulseDatabaseQueries.transaction {
-            // Clear existing data
-            database.netPulseDatabaseQueries.clearSpeedTestServers()
-            // Insert new server entries
+            database.netPulseDatabaseQueries.clearServers()
             response.servers.forEach { server ->
-                database.netPulseDatabaseQueries.insertSpeedTestServer(
+                database.netPulseDatabaseQueries.insertServer(
                     id = server.attrs["id"] ?: error("Missing id"),
                     url = server.attrs["url"] ?: error("Missing url"),
                     lat = server.attrs["lat"]?.toDouble() ?: error("Missing lat"),
@@ -34,16 +32,16 @@ open class SpeedTestServersDataSourceImpl(
         }
     }
 
-    override fun getSpeedTestServers(): Flow<SpeedTestServersResponse?> =
+    override fun retrieveServers(): Flow<ServersResponse?> =
         database.netPulseDatabaseQueries
-            .getSpeedTestServers()
+            .getServers()
             .asFlow()
             .mapToList(context = Dispatchers.Default)
             .map { entities ->
                 if (entities.isEmpty()) {
                     null
                 } else {
-                    SpeedTestServersResponse(
+                    ServersResponse(
                         servers =
                             entities.map { entity ->
                                 Server(
@@ -65,16 +63,16 @@ open class SpeedTestServersDataSourceImpl(
                 }
             }
 
-    override fun getSpeedTestServer(serverId: Int): Flow<SpeedTestServersResponse?> =
+    override fun getServer(serverId: Int): Flow<ServersResponse?> =
         database.netPulseDatabaseQueries
-            .getSpeedTestServerById(serverId.toString())
+            .getServerById(serverId.toString())
             .asFlow()
             .mapToList(context = Dispatchers.Default)
             .map { entities ->
                 if (entities.isEmpty()) {
                     null
                 } else {
-                    SpeedTestServersResponse(
+                    ServersResponse(
                         servers =
                             entities.map { entity ->
                                 Server(
@@ -96,7 +94,7 @@ open class SpeedTestServersDataSourceImpl(
                 }
             }
 
-    override suspend fun clearSpeedTestServers() {
-        database.netPulseDatabaseQueries.clearSpeedTestServers()
+    override suspend fun clearServers() {
+        database.netPulseDatabaseQueries.clearServers()
     }
 }
