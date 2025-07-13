@@ -11,6 +11,8 @@ interface TestResultStorage {
         serverCountry: String,
         serverSponsor: String,
         serverHost: String,
+        serverDistance: Double,
+        testLocationId: Long,
         testTimestamp: Long,
     ): Long
 
