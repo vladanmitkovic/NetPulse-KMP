@@ -19,14 +19,17 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.Server
+import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.util.calculateAverage
 import me.mitkovic.kmp.netpulse.util.calculateJitter
@@ -195,6 +198,40 @@ class RemoteServiceImpl(
         localStorage: LocalStorage,
     ) = coroutineScope {
         try {
+            val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+            val timestamp = Clock.System.now().toEpochMilliseconds()
+            val effectiveLocation =
+                currentLocation ?: UserLocation(
+                    ip = null,
+                    network = null,
+                    version = null,
+                    city = null,
+                    region = null,
+                    regionCode = null,
+                    country = null,
+                    countryName = null,
+                    countryCode = null,
+                    countryCodeIso3 = null,
+                    countryCapital = null,
+                    countryTld = null,
+                    continentCode = null,
+                    inEu = null,
+                    postal = null,
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    timezone = null,
+                    utcOffset = null,
+                    countryCallingCode = null,
+                    currency = null,
+                    currencyName = null,
+                    languages = null,
+                    countryArea = null,
+                    countryPopulation = null,
+                    asn = null,
+                    org = null,
+                    timestamp = timestamp,
+                )
+            val testLocationId = localStorage.locationStorage.getOrStoreTestLocation(effectiveLocation)
             val sessionId =
                 localStorage.testResultStorage.insertTestSession(
                     serverId = server.id.toString(),
@@ -203,7 +240,9 @@ class RemoteServiceImpl(
                     serverCountry = server.country,
                     serverSponsor = server.sponsor,
                     serverHost = server.host,
-                    testTimestamp = Clock.System.now().toEpochMilliseconds(),
+                    serverDistance = server.distance ?: 0.0,
+                    testLocationId = testLocationId,
+                    testTimestamp = timestamp,
                 )
             logger.logDebug(RemoteServiceImpl::class.simpleName, "Created session with ID: $sessionId")
             logger.logDebug(RemoteServiceImpl::class.simpleName, "Starting download test")
@@ -356,4 +395,18 @@ class RemoteServiceImpl(
             tasks.awaitAll().forEach { speed -> if (speed >= 0) onResult(speed) }
         }
     }
+
+    override suspend fun getUserLocation(): GeoIpResponse? =
+        try {
+            val response: GeoIpResponse = client.get("https://ipapi.co/json/").body()
+            if (response.error == true) {
+                logger.logError(RemoteServiceImpl::class.simpleName, "GeoIP error: ${response.reason}", null)
+                null
+            } else {
+                response
+            }
+        } catch (e: Exception) {
+            logger.logError(RemoteServiceImpl::class.simpleName, "Failed to get user location: ${e.message}", e)
+            null
+        }
 }

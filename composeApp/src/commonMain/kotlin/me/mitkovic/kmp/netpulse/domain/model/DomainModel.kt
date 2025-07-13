@@ -14,4 +14,5 @@ data class Server(
     val sponsor: String,
     val id: Int,
     val host: String,
+    val distance: Double? = null,
 )
