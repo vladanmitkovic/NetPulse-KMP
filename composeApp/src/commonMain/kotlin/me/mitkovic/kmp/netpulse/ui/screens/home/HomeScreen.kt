@@ -21,7 +21,8 @@ fun HomeScreen(
     onNavigateToSpeedTest: (Int) -> Unit,
 ) {
     val serverState = viewModel.serverFlow.collectAsStateWithLifecycle().value
-    val nearestServerState = viewModel.nearestServerUiState.collectAsStateWithLifecycle().value
+    val nearestServerByLocationState = viewModel.nearestServerByLocationUiState.collectAsStateWithLifecycle().value
+    // val nearestServerState = viewModel.nearestServerUiState.collectAsStateWithLifecycle().value
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -31,6 +32,47 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            when (nearestServerByLocationState) {
+                is NearestServerByLocationUiState.Success -> {
+                    if (nearestServerByLocationState.nearestServer != null) {
+                        Text(
+                            "Nearest Server by Location: ${nearestServerByLocationState.nearestServer.name} (${nearestServerByLocationState.nearestServer.host})",
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                        Button(
+                            onClick = { onNavigateToSpeedTest(nearestServerByLocationState.nearestServer.id) },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                        ) {
+                            Text("Start Speed Test (Location)")
+                        }
+                    }
+                }
+                is NearestServerByLocationUiState.Error -> {
+                    Text("Error (Location): ${nearestServerByLocationState.error}")
+                }
+                is NearestServerByLocationUiState.Loading -> {}
+            }
+
+            if (serverState is ServersUiState.Loading ||
+                nearestServerByLocationState is NearestServerByLocationUiState.Loading
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    CircularProgressIndicator()
+                    Text("Finding nearest server...", modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+
+            /*
             when (nearestServerState) {
                 is NearestServerUiState.Success -> {
                     if (nearestServerState.nearestServer != null) {
@@ -54,20 +96,7 @@ fun HomeScreen(
                 }
                 is NearestServerUiState.Loading -> {}
             }
-        }
-
-        if (serverState is ServersUiState.Loading || nearestServerState is NearestServerUiState.Loading) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
-                Text("Finding nearest server...", modifier = Modifier.padding(top = 8.dp))
-            }
+             */
         }
     }
 }

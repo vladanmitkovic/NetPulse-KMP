@@ -27,6 +27,7 @@ open class ServerStorageImpl(
                     cc = server.attrs["cc"] ?: error("Missing cc"),
                     sponsor = server.attrs["sponsor"] ?: error("Missing sponsor"),
                     host = server.attrs["host"] ?: error("Missing host"),
+                    distance = server.attrs["distance"]?.toDouble() ?: 0.0,
                 )
             }
         }
@@ -56,6 +57,7 @@ open class ServerStorageImpl(
                                             "cc" to entity.cc,
                                             "sponsor" to entity.sponsor,
                                             "host" to entity.host,
+                                            "distance" to entity.distance.toString(),
                                         ),
                                 )
                             },
@@ -87,6 +89,7 @@ open class ServerStorageImpl(
                                             "cc" to entity.cc,
                                             "sponsor" to entity.sponsor,
                                             "host" to entity.host,
+                                            "distance" to entity.distance.toString(),
                                         ),
                                 )
                             },

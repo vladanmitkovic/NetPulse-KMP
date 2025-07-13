@@ -21,6 +21,8 @@ class TestResultStorageImpl(
         serverCountry: String,
         serverSponsor: String,
         serverHost: String,
+        serverDistance: Double,
+        testLocationId: Long,
         testTimestamp: Long,
     ): Long {
         database.netPulseDatabaseQueries.transaction {
@@ -31,6 +33,8 @@ class TestResultStorageImpl(
                 serverCountry = serverCountry,
                 serverSponsor = serverSponsor,
                 serverHost = serverHost,
+                serverDistance = serverDistance,
+                testLocationId = testLocationId,
                 testTimestamp = testTimestamp,
             )
         }

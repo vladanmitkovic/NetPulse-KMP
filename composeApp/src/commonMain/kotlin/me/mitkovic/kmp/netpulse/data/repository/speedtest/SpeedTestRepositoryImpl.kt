@@ -11,8 +11,12 @@ import me.mitkovic.kmp.netpulse.data.model.toDomainModel
 import me.mitkovic.kmp.netpulse.data.remote.RemoteService
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.domain.model.ServersResponse
+import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestRepository
 import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.util.haversineDistance
+import me.mitkovic.kmp.netpulse.data.model.Server as DataServer
+import me.mitkovic.kmp.netpulse.data.model.ServersResponse as DataServersResponse
 
 class SpeedTestRepositoryImpl(
     private val localStorage: LocalStorage,
@@ -57,6 +61,25 @@ class SpeedTestRepositoryImpl(
             null
         }
 
+    override suspend fun fetchAndSaveUserLocation(): UserLocation? {
+        try {
+            localStorage.locationStorage.clearCurrentLocation()
+            val response =
+                remoteService.getUserLocation() ?: return null.also {
+                    logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "Unable to get user location")
+                }
+            val timestamp =
+                kotlinx.datetime.Clock.System
+                    .now()
+                    .toEpochMilliseconds()
+            localStorage.locationStorage.storeCurrentLocation(response, timestamp)
+            return response.toDomainModel(timestamp)
+        } catch (e: Exception) {
+            logger.logError(SpeedTestRepositoryImpl::class.simpleName, "Error fetching and saving user location: ${e.message}", e)
+            return null
+        }
+    }
+
     override fun syncServers(): Flow<Resource<ServersResponse?>> =
         flow {
             emit(Resource.Loading)
@@ -70,8 +93,27 @@ class SpeedTestRepositoryImpl(
                                 throwable = null,
                             )
 
-                            localStorage.serverStorage.storeServers(response = remoteResult.data)
-                            emit(Resource.Success(remoteResult.data.toDomainModel()))
+                            val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+                            val modifiedServers =
+                                remoteResult.data.servers.map { server ->
+                                    val lat = server.attrs["lat"]?.toDouble() ?: 0.0
+                                    val lon = server.attrs["lon"]?.toDouble() ?: 0.0
+                                    val dist =
+                                        if (currentLocation != null) {
+                                            (haversineDistance(currentLocation.latitude, currentLocation.longitude, lat, lon) * 1000)
+                                        } else {
+                                            0.0
+                                        }
+                                    DataServer(
+                                        attrs =
+                                            server.attrs.toMutableMap().apply {
+                                                put("distance", dist.toString())
+                                            },
+                                    )
+                                }
+                            val modifiedResponse = DataServersResponse(servers = modifiedServers)
+                            localStorage.serverStorage.storeServers(response = modifiedResponse)
+                            emit(Resource.Success(modifiedResponse.toDomainModel()))
                         }
                         is Resource.Error -> {
                             logger.logError(
@@ -139,4 +181,20 @@ class SpeedTestRepositoryImpl(
                 }
             }
         }
+
+    override suspend fun findClosestServerByDistance(): Server? {
+        val servers =
+            localStorage.serverStorage
+                .retrieveServers()
+                .firstOrNull()
+                ?.toDomainModel()
+                ?.servers ?: return null.also {
+                logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
+            }
+        return servers
+            .minByOrNull { it.distance ?: Double.MAX_VALUE }
+            .also { server ->
+                if (server == null) logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No closest server found")
+            }
+    }
 }

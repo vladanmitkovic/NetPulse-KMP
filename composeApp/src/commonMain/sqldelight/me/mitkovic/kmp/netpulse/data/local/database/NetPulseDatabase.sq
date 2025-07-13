@@ -1,3 +1,69 @@
+-- CurrentLocation table
+CREATE TABLE CurrentLocation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT,
+    network TEXT,
+    version TEXT,
+    city TEXT,
+    region TEXT,
+    region_code TEXT,
+    country TEXT,
+    country_name TEXT,
+    country_code TEXT,
+    country_code_iso3 TEXT,
+    country_capital TEXT,
+    country_tld TEXT,
+    continent_code TEXT,
+    in_eu INTEGER,
+    postal TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    timezone TEXT,
+    utc_offset TEXT,
+    country_calling_code TEXT,
+    currency TEXT,
+    currency_name TEXT,
+    languages TEXT,
+    country_area REAL,
+    country_population INTEGER,
+    asn TEXT,
+    org TEXT,
+    timestamp INTEGER NOT NULL
+);
+
+-- TestLocation table
+CREATE TABLE TestLocation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT,
+    network TEXT,
+    version TEXT,
+    city TEXT,
+    region TEXT,
+    region_code TEXT,
+    country TEXT,
+    country_name TEXT,
+    country_code TEXT,
+    country_code_iso3 TEXT,
+    country_capital TEXT,
+    country_tld TEXT,
+    continent_code TEXT,
+    in_eu INTEGER,
+    postal TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    timezone TEXT,
+    utc_offset TEXT,
+    country_calling_code TEXT,
+    currency TEXT,
+    currency_name TEXT,
+    languages TEXT,
+    country_area REAL,
+    country_population INTEGER,
+    asn TEXT,
+    org TEXT,
+    timestamp INTEGER NOT NULL
+);
+
 -- Table for server data
 CREATE TABLE Server (
     id TEXT NOT NULL PRIMARY KEY,
@@ -8,7 +74,8 @@ CREATE TABLE Server (
     country TEXT NOT NULL,
     cc TEXT NOT NULL,
     sponsor TEXT NOT NULL,
-    host TEXT NOT NULL
+    host TEXT NOT NULL,
+    distance REAL NOT NULL
 );
 
 -- Table for speed test sessions
@@ -20,7 +87,9 @@ CREATE TABLE TestSession (
     serverCountry TEXT NOT NULL,
     serverSponsor TEXT NOT NULL,
     serverHost TEXT NOT NULL,
-    testTimestamp INTEGER NOT NULL
+    serverDistance REAL NOT NULL,
+    testTimestamp INTEGER NOT NULL,
+    testLocationId INTEGER NOT NULL REFERENCES TestLocation(id)
 );
 
 -- Table for speed test results
@@ -33,11 +102,39 @@ CREATE TABLE TestResult (
     FOREIGN KEY (sessionId) REFERENCES TestSession(sessionId)
 );
 
+-- insertCurrentLocation
+insertCurrentLocation:
+INSERT INTO CurrentLocation (
+    ip, network, version, city, region, region_code, country, country_name, country_code, country_code_iso3,
+    country_capital, country_tld, continent_code, in_eu, postal, latitude, longitude, timezone, utc_offset,
+    country_calling_code, currency, currency_name, languages, country_area, country_population, asn, org, timestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- getCurrentLocation
+getCurrentLocation:
+SELECT * FROM CurrentLocation LIMIT 1;
+
+-- clearCurrentLocation
+clearCurrentLocation:
+DELETE FROM CurrentLocation;
+
+-- insertTestLocation
+insertTestLocation:
+INSERT INTO TestLocation (
+    ip, network, version, city, region, region_code, country, country_name, country_code, country_code_iso3,
+    country_capital, country_tld, continent_code, in_eu, postal, latitude, longitude, timezone, utc_offset,
+    country_calling_code, currency, currency_name, languages, country_area, country_population, asn, org, timestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- getTestLocationIdByLatLon
+getTestLocationIdByLatLon:
+SELECT id FROM TestLocation WHERE latitude = ? AND longitude = ? LIMIT 1;
+
 -- Insert or replace a server
 insertServer:
 INSERT OR REPLACE INTO Server (
-    id, url, lat, lon, name, country, cc, sponsor, host
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, url, lat, lon, name, country, cc, sponsor, host, distance
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get all servers
 getServers:
@@ -54,8 +151,8 @@ DELETE FROM Server;
 -- Insert a test session
 insertTestSession:
 INSERT INTO TestSession (
-    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, testTimestamp
-) VALUES (?, ?, ?, ?, ?, ?, ?);
+    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, serverDistance, testLocationId, testTimestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get all test sessions, ordered by timestamp
 getTestSessions:

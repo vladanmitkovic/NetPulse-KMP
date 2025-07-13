@@ -9,10 +9,14 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.serialization.kotlinx.xml.xml
+import kotlinx.serialization.json.Json
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
 import me.mitkovic.kmp.netpulse.data.local.LocalStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.location.LocationStorage
+import me.mitkovic.kmp.netpulse.data.local.location.LocationStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorage
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorage
@@ -60,10 +64,15 @@ actual fun platformModule() =
             )
         }
 
+        single<LocationStorage> {
+            LocationStorageImpl(database = get<NetPulseDatabase>())
+        }
+
         single<LocalStorage> {
             LocalStorageImpl(
                 testResultStorage = get<TestResultStorage>(),
                 serverStorage = get<ServerStorage>(),
+                locationStorage = get<LocationStorage>(),
             )
         }
 
@@ -81,6 +90,12 @@ actual fun platformModule() =
             HttpClient(CIO) {
                 install(ContentNegotiation) {
                     xml(xmlFormat)
+                    json(
+                        Json {
+                            ignoreUnknownKeys = true
+                            isLenient = true
+                        },
+                    )
                 }
                 install(HttpTimeout) {
                     connectTimeoutMillis = 10_000

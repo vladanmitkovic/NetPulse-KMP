@@ -41,6 +41,7 @@ private fun Server.toDomainModel(): DomainServer =
         sponsor = attrs["sponsor"] ?: error("Missing sponsor"),
         id = attrs["id"]?.toInt() ?: error("Missing id"),
         host = attrs["host"] ?: error("Missing host"),
+        distance = attrs["distance"]?.toDouble(),
     )
 
 fun DomainServersResponse.toDataModel(): ServersResponse =
@@ -51,15 +52,16 @@ fun DomainServersResponse.toDataModel(): ServersResponse =
 private fun DomainServer.toDataModel(): Server =
     Server(
         attrs =
-            mapOf(
-                "url" to url,
-                "lat" to lat.toString(),
-                "lon" to lon.toString(),
-                "name" to name,
-                "country" to country,
-                "cc" to cc,
-                "sponsor" to sponsor,
-                "id" to id.toString(),
-                "host" to host,
-            ),
+            buildMap {
+                put("url", url)
+                put("lat", lat.toString())
+                put("lon", lon.toString())
+                put("name", name)
+                put("country", country)
+                put("cc", cc)
+                put("sponsor", sponsor)
+                put("id", id.toString())
+                put("host", host)
+                distance?.let { put("distance", it.toString()) }
+            },
     )
