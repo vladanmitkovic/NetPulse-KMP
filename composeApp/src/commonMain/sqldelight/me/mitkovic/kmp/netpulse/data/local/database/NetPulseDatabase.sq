@@ -88,6 +88,8 @@ CREATE TABLE TestSession (
     serverSponsor TEXT NOT NULL,
     serverHost TEXT NOT NULL,
     serverDistance REAL NOT NULL,
+    ping REAL,
+    jitter REAL,
     testTimestamp INTEGER NOT NULL,
     testLocationId INTEGER NOT NULL REFERENCES TestLocation(id)
 );
@@ -151,8 +153,8 @@ DELETE FROM Server;
 -- Insert a test session
 insertTestSession:
 INSERT INTO TestSession (
-    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, serverDistance, testLocationId, testTimestamp
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, serverDistance, testLocationId, ping, jitter, testTimestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get all test sessions, ordered by timestamp
 getTestSessions:
@@ -160,7 +162,17 @@ SELECT * FROM TestSession ORDER BY testTimestamp DESC;
 
 -- Get sessions by server ID
 getTestSessionByServerId:
-SELECT * FROM TestSession WHERE serverId = ? ORDER BY testTimestamp DESC;
+SELECT * FROM TestSession WHERE serverId = ? ORDER BY testTimestamp DESC LIMIT 1;
+
+-- getLatestTestSession
+getLatestTestSession:
+SELECT * FROM TestSession
+ORDER BY testTimestamp DESC
+LIMIT 1;
+
+-- updateTestSessionPingJitter
+updateTestSessionPingJitter:
+UPDATE TestSession SET ping = ?, jitter = ? WHERE sessionId = ?;
 
 -- Insert a test result
 insertTestResult:
