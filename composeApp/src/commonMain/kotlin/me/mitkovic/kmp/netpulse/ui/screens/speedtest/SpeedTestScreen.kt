@@ -1,40 +1,39 @@
 package me.mitkovic.kmp.netpulse.ui.screens.speedtest
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.mitkovic.kmp.netpulse.data.local.database.TestResult
-import kotlin.math.cos
+import me.mitkovic.kmp.netpulse.common.Constants.DOWNLOAD_TIMEOUT
+import me.mitkovic.kmp.netpulse.common.Constants.UPLOAD_TIMEOUT
+import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
+import me.mitkovic.kmp.netpulse.domain.model.Server
+import me.mitkovic.kmp.netpulse.ui.components.LinearChart
+import me.mitkovic.kmp.netpulse.ui.components.SpeedGauge
+import me.mitkovic.kmp.netpulse.ui.components.VerticalProgressIndicator
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 @Composable
 fun SpeedTestScreen(
@@ -43,40 +42,23 @@ fun SpeedTestScreen(
 ) {
     val serverState by viewModel.serverUiState.collectAsStateWithLifecycle()
     val serverStateValue = serverState
-    val databaseState by viewModel.databaseFlow.collectAsStateWithLifecycle() // Changed to databaseFlow
-    val databaseStateValue = databaseState
-    val isTestCompleted by viewModel.databaseUiState.collectAsStateWithLifecycle() // Added for completion check
+    val databaseUiStateValue by viewModel.databaseUiState.collectAsStateWithLifecycle()
+    val state = databaseUiStateValue
+    val progress by viewModel.progress.collectAsStateWithLifecycle()
 
     Column(
         modifier =
             Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+                .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
-        IconButton(
-            onClick = { onBackClick() },
-            modifier =
-                Modifier
-                    .padding(top = 16.dp, start = 16.dp),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-
         when (serverStateValue) {
             is ServerUiState.Loading -> {
                 Text("Loading server...", modifier = Modifier.padding(16.dp))
             }
             is ServerUiState.Success -> {
-                if (serverStateValue.server != null) {
-                    Text(text = serverStateValue.server.toString())
-                } else {
+                if (serverStateValue.server == null) {
                     Text("Server not found")
                 }
             }
@@ -88,145 +70,299 @@ fun SpeedTestScreen(
             }
         }
 
-        when (databaseStateValue) {
-            is DatabaseUiState.Loading -> {
-                Text("Loading result...", modifier = Modifier.padding(top = 8.dp))
-            }
-            is DatabaseUiState.Success -> {
-                Speedometer(result = databaseStateValue.result, isTestCompleted = isTestCompleted is DatabaseUiState.Completed)
-            }
-            is DatabaseUiState.Error -> {
-                Text("Result Error: ${databaseStateValue.error}", modifier = Modifier.padding(top = 8.dp))
-            }
-            is DatabaseUiState.Completed -> {
-                Speedometer(result = null, isTestCompleted = true)
-            }
+        if (state is DatabaseUiState.Error) {
+            Text("Result Error: ${state.error}", modifier = Modifier.padding(top = 8.dp))
+        } else {
+            Speedometer(
+                progress = progress,
+                isTestCompleted = state is DatabaseUiState.Completed,
+                server = if (serverStateValue is ServerUiState.Success) serverStateValue.server else null,
+                onRetest = {
+                    viewModel.reset()
+                    if (state is DatabaseUiState.Completed &&
+                        serverStateValue is ServerUiState.Success &&
+                        serverStateValue.server != null
+                    ) {
+                        viewModel.startSpeedTest(serverStateValue.server)
+                    }
+                },
+            )
         }
     }
 }
 
-private fun toRadians(degrees: Double): Double = degrees * (kotlin.math.PI / 180.0)
-
 @Composable
 fun Speedometer(
-    result: TestResult?,
+    progress: SpeedTestProgress,
     isTestCompleted: Boolean,
+    server: Server? = null,
+    onRetest: () -> Unit = {},
 ) {
     var lastDownloadSpeed by remember { mutableStateOf<Float?>(null) }
     var lastUploadSpeed by remember { mutableStateOf<Float?>(null) }
+    var currentTestType by remember { mutableStateOf<Long?>(null) } // 1 for download, 2 for upload
+    var previousTestType by remember { mutableStateOf<Long?>(null) }
+    var downloadSpeeds by remember { mutableStateOf(listOf<Float>()) }
+    var uploadSpeeds by remember { mutableStateOf(listOf<Float>()) }
+
+    LaunchedEffect(progress.downloadSpeed) {
+        if (progress.downloadSpeed != null && progress.downloadSpeed.toFloat() != lastDownloadSpeed) {
+            val speed = progress.downloadSpeed.toFloat()
+            if (1L != previousTestType) {
+                downloadSpeeds = emptyList()
+                previousTestType = 1L
+            }
+            downloadSpeeds += speed
+            lastDownloadSpeed = speed
+            currentTestType = 1L
+        }
+    }
+
+    LaunchedEffect(progress.uploadSpeed) {
+        if (progress.uploadSpeed != null && progress.uploadSpeed.toFloat() != lastUploadSpeed) {
+            val speed = progress.uploadSpeed.toFloat()
+            if (2L != previousTestType) {
+                uploadSpeeds = emptyList()
+                previousTestType = 2L
+            }
+            uploadSpeeds += speed
+            lastUploadSpeed = speed
+            currentTestType = 2L
+        }
+    }
+
+    val downloadSpeed = lastDownloadSpeed ?: 0f
+    val uploadSpeed = lastUploadSpeed ?: 0f
+    val maxSpeed = 1000f
+    val speed = if (currentTestType == 1L) downloadSpeed else uploadSpeed
+    val angle = (speed / maxSpeed) * 180f
+    val color = if (currentTestType == 1L) Color.Blue else Color.Green
+
+    LaunchedEffect(isTestCompleted) {
+        if (!isTestCompleted) {
+            lastDownloadSpeed = null
+            lastUploadSpeed = null
+            currentTestType = null
+            previousTestType = null
+            downloadSpeeds = emptyList()
+            uploadSpeeds = emptyList()
+        }
+    }
 
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (isTestCompleted && lastDownloadSpeed != null && lastUploadSpeed != null) {
-            // Show last download and upload speeds when tests are complete
-            Text(
-                text = "Download Speed: ${lastDownloadSpeed!!.roundToInt()} Mbps",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-            Text(
-                text = "Upload Speed: ${lastUploadSpeed!!.roundToInt()} Mbps",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-            )
-        } else if (result == null) {
-            Text("No result available")
-        } else {
-            // Update last speeds and show speedometer
-            val speed = result.speed?.toFloat() ?: 0f
-            if (result.testType == 1L) {
-                lastDownloadSpeed = speed
-            } else if (result.testType == 2L) {
-                lastUploadSpeed = speed
-            }
-
-            val title = if (result.testType == 1L) "Download" else "Upload"
-            val maxSpeed = 1000f // Fixed maximum of 1000 Mbps
-            val angle = (speed / maxSpeed) * 180f // Map speed to 0-180 degrees
-
-            Text(
-                text = "$title Speed",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "0 Mbps",
-                    fontSize = 12.sp,
+        // Show gauge or button at the top
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!isTestCompleted) {
+                SpeedGauge(
+                    angle = angle,
+                    width = 300,
+                    height = 200,
+                    arcColor = color,
+                    modifier = Modifier,
                 )
-                Text(
-                    text = "1000 Mbps",
-                    fontSize = 12.sp,
-                )
-            }
-
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f),
-                    // Square proportional to width
+            } else {
+                Button(
+                    onClick = onRetest,
+                    shape = CircleShape,
+                    modifier = Modifier.size(200.dp),
                 ) {
-                    // Draw background arc (full gauge)
-                    drawArc(
-                        color = Color.Gray,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(10f, 10f), // Offset for stroke width
-                        size = Size(size.width - 20f, size.height - 20f), // Adjusted for stroke
-                        style = Stroke(width = 20f),
-                    )
+                    Text("Again")
+                }
+            }
+        }
 
-                    // Draw speed arc (filled portion)
-                    drawArc(
-                        color = if (result.testType == 1L) Color.Blue else Color.Green,
-                        startAngle = 180f,
-                        sweepAngle = angle,
-                        useCenter = false,
-                        topLeft = Offset(10f, 10f), // Offset for stroke width
-                        size = Size(size.width - 20f, size.height - 20f), // Adjusted for stroke
-                        style = Stroke(width = 20f),
-                    )
-
-                    // Draw needle
-                    val needleLength = size.width / 2f // Reaches arc edge
-                    val needleAngle = toRadians((180 + angle).toDouble()).toFloat()
-                    val needleEndX = (size.width / 2 + needleLength * cos(needleAngle))
-                    val needleEndY = (size.height / 2 + needleLength * sin(needleAngle))
-                    drawLine(
-                        color = Color.Black,
-                        start = Offset(size.width / 2, size.height / 2),
-                        end = Offset(needleEndX, needleEndY),
-                        strokeWidth = 10f,
+        // Below the gauge, show the two rows with columns
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = "PING",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${(progress.ping ?: 0.0).roundToInt()}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "ms",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = "DOWNLOAD",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${downloadSpeed.roundToInt()}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Mbps",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+            Box(modifier = Modifier.width(20.dp)) {
+                if (currentTestType == 1L || lastDownloadSpeed != null) {
+                    VerticalProgressIndicator(
+                        progress = if (currentTestType != 1L || isTestCompleted) 1f else 0f,
+                        animate = currentTestType == 1L && !isTestCompleted,
+                        durationMillis = (DOWNLOAD_TIMEOUT * 1000).toInt(),
+                        reset = !isTestCompleted && currentTestType == null,
+                        complete = isTestCompleted || currentTestType == 2L,
+                        color = Color.Blue,
+                        fromBottom = false,
+                        modifier =
+                            Modifier
+                                .width(4.dp)
+                                .height(60.dp)
+                                .align(Alignment.Center),
                     )
                 }
             }
+            Box(modifier = Modifier.width(100.dp).height(60.dp)) {
+                if (currentTestType == 1L || lastDownloadSpeed != null) {
+                    LinearChart(
+                        speeds = downloadSpeeds,
+                        lineColor = Color.Blue,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
 
-            Text(
-                text = "${speed.roundToInt()} Mbps",
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = "JITTER",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${(progress.jitter ?: 0.0).roundToInt()}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "ms",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = "UPLOAD",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${uploadSpeed.roundToInt()}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Mbps",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+            Box(modifier = Modifier.width(20.dp)) {
+                if (currentTestType == 2L || lastUploadSpeed != null) {
+                    VerticalProgressIndicator(
+                        progress = if (isTestCompleted) 1f else 0f,
+                        animate = currentTestType == 2L && !isTestCompleted,
+                        durationMillis = (UPLOAD_TIMEOUT * 1000).toInt(),
+                        reset = !isTestCompleted && currentTestType == null,
+                        complete = isTestCompleted,
+                        color = Color.Green,
+                        fromBottom = true,
+                        modifier =
+                            Modifier
+                                .width(4.dp)
+                                .height(60.dp)
+                                .align(Alignment.Center),
+                    )
+                }
+            }
+            Box(modifier = Modifier.width(100.dp).height(60.dp)) {
+                if (currentTestType == 2L || lastUploadSpeed != null) {
+                    LinearChart(
+                        speeds = uploadSpeeds,
+                        lineColor = Color.Green,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        if (server != null) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    Text(
+                        text = "Country: ${server.country}",
+                        fontSize = 12.sp,
+                    )
+                    Text(
+                        text = "Name: ${server.name}",
+                        fontSize = 12.sp,
+                    )
+                    Text(
+                        text = "Sponsor: ${server.sponsor}",
+                        fontSize = 12.sp,
+                    )
+                    Text(
+                        text = "Distance: ${server.distance?.let { (it / 1000).roundToInt() } ?: "N/A"} km",
+                        fontSize = 12.sp,
+                    )
+                }
+            }
         }
     }
 }

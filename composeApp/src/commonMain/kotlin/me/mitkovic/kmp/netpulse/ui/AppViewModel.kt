@@ -16,13 +16,10 @@ class AppViewModel(
     init {
         logger.logError(AppViewModel::class.simpleName, "AppViewModel", null)
         viewModelScope.launch {
-            appRepository.speedTestRepository.fetchAndSaveUserLocation()
-            fetchServers()
-        }
-    }
+            appRepository
+                .speedTestRepository
+                .fetchAndSaveUserLocation()
 
-    fun fetchServers() {
-        viewModelScope.launch {
             appRepository
                 .speedTestRepository
                 .syncServers()
