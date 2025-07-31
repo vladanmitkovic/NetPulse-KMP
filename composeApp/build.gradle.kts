@@ -19,9 +19,9 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64(),
+        iosX64(), // Intel Mac simulator
+        iosArm64(), // Real iOS device
+        iosSimulatorArm64(), // Apple Silicon Mac simulator
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"

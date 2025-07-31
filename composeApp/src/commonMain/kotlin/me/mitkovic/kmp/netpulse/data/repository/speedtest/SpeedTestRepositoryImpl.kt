@@ -3,10 +3,11 @@ package me.mitkovic.kmp.netpulse.data.repository.speedtest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
+import me.mitkovic.kmp.netpulse.common.Constants
+import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
-import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
+import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.model.toDomainModel
 import me.mitkovic.kmp.netpulse.data.remote.RemoteService
 import me.mitkovic.kmp.netpulse.domain.model.Server
@@ -15,6 +16,8 @@ import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestRepository
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.util.haversineDistance
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import me.mitkovic.kmp.netpulse.data.model.Server as DataServer
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse as DataServersResponse
 
@@ -152,33 +155,89 @@ class SpeedTestRepositoryImpl(
         }
     }
 
-    override suspend fun executeSpeedTest(server: Server) {
-        logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "Running speed test for server: ${server.name}")
-        remoteService.performSpeedTest(server, localStorage)
-    }
-
-    override fun observeLatestTestResult(): Flow<Resource<TestResult?>> =
+    @OptIn(ExperimentalTime::class)
+    override fun executeSpeedTest(server: Server): Flow<SpeedTestProgress> =
         flow {
             try {
-                localStorage.testResultStorage
-                    .getLatestTestResult()
-                    .map {
-                        Resource.Success(it)
-                    }.collect { emit(it) }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) {
-                    logger.logDebug(
-                        tag = SpeedTestRepositoryImpl::class.simpleName,
-                        message = "Observing speed test results cancelled",
+                val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+                val timestamp = Clock.System.now().toEpochMilliseconds()
+
+                val effectiveLocation =
+                    currentLocation ?: UserLocation(
+                        ip = null,
+                        network = null,
+                        version = null,
+                        city = null,
+                        region = null,
+                        regionCode = null,
+                        country = null,
+                        countryName = null,
+                        countryCode = null,
+                        countryCodeIso3 = null,
+                        countryCapital = null,
+                        countryTld = null,
+                        continentCode = null,
+                        inEu = null,
+                        postal = null,
+                        latitude = 0.0,
+                        longitude = 0.0,
+                        timezone = null,
+                        utcOffset = null,
+                        countryCallingCode = null,
+                        currency = null,
+                        currencyName = null,
+                        languages = null,
+                        countryArea = null,
+                        countryPopulation = null,
+                        asn = null,
+                        org = null,
+                        timestamp = timestamp,
                     )
-                } else {
-                    logger.logError(
-                        tag = SpeedTestRepositoryImpl::class.simpleName,
-                        message = "Error observing speed test result: ${e.message}",
-                        throwable = e,
+
+                val testLocationId = localStorage.locationStorage.getOrStoreTestLocation(effectiveLocation)
+
+                val sessionId =
+                    localStorage.testResultStorage.insertTestSession(
+                        serverId = server.id.toString(),
+                        serverUrl = server.url,
+                        serverName = server.name,
+                        serverCountry = server.country,
+                        serverSponsor = server.sponsor,
+                        serverHost = server.host,
+                        serverDistance = server.distance ?: 0.0,
+                        testLocationId = testLocationId,
+                        ping = null,
+                        jitter = null,
+                        testTimestamp = timestamp,
                     )
-                    emit(Resource.Error(e.message ?: "Unknown error", null))
+
+                val pingResult = remoteService.measurePingAndJitter(server)
+
+                emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter))
+
+                localStorage.testResultStorage.updateTestSessionPingJitter(sessionId, pingResult.averageLatency, pingResult.jitter)
+
+                val initialImageSize = "1000"
+
+                remoteService.downloadTestMultiThread(server, initialImageSize, Constants.DOWNLOAD_TIMEOUT) { speed ->
+                    if (speed >= 0) {
+                        emit(SpeedTestProgress(downloadSpeed = speed * 8))
+                        localStorage.testResultStorage.insertTestResult(sessionId, 1, speed * 8, Clock.System.now().toEpochMilliseconds())
+                    }
                 }
+
+                val initialPayloadSize = 128 * 1024 // 128 KB
+
+                remoteService.uploadTestMultiThread(server, initialPayloadSize, Constants.UPLOAD_TIMEOUT) { speed ->
+                    if (speed >= 0) {
+                        emit(SpeedTestProgress(uploadSpeed = speed * 8))
+                        localStorage.testResultStorage.insertTestResult(sessionId, 2, speed * 8, Clock.System.now().toEpochMilliseconds())
+                    }
+                }
+
+                emit(SpeedTestProgress(isCompleted = true))
+            } catch (e: Exception) {
+                emit(SpeedTestProgress(error = e.message ?: SOMETHING_WENT_WRONG))
             }
         }
 

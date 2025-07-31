@@ -1,8 +1,8 @@
 package me.mitkovic.kmp.netpulse.data.remote
 
 import kotlinx.coroutines.flow.Flow
-import me.mitkovic.kmp.netpulse.data.local.LocalStorage
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
+import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.Server
@@ -14,8 +14,19 @@ interface RemoteService {
 
     suspend fun getUserLocation(): GeoIpResponse?
 
-    suspend fun performSpeedTest(
+    suspend fun measurePingAndJitter(server: Server): PingResult
+
+    suspend fun downloadTestMultiThread(
         server: Server,
-        localStorage: LocalStorage,
+        initialImageSize: String,
+        timeout: Double,
+        onResult: suspend (Double) -> Unit,
+    )
+
+    suspend fun uploadTestMultiThread(
+        server: Server,
+        initialPayloadSize: Int,
+        timeout: Double,
+        onResult: suspend (Double) -> Unit,
     )
 }

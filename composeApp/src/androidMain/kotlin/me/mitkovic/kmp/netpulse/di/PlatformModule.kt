@@ -42,13 +42,13 @@ actual fun platformModule() =
             val context = androidContext()
 
             // Delete the corrupted database
-            context.deleteDatabase("net_pulse.db")
+            context.deleteDatabase("net_pulse_third.db")
 
             val driver =
                 AndroidSqliteDriver(
                     schema = NetPulseDatabase.Schema,
                     context = androidContext(),
-                    name = "net_pulse_third.db",
+                    name = "net_pulse_fourth.db",
                 )
             driver
         }

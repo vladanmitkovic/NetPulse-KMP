@@ -36,7 +36,7 @@ actual fun platformModule() =
         single {
             NativeSqliteDriver(
                 schema = NetPulseDatabase.Schema,
-                name = "net_pulse_third.db",
+                name = "net_pulse_fourth.db",
             )
         }
 
