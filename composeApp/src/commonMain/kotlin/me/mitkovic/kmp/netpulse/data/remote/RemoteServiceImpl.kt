@@ -56,9 +56,6 @@ class RemoteServiceImpl(
             "4000" to 31.26,
         )
 
-    private val initialImageSize = "1000"
-    private val initialPayloadSize = 128 * 1024 // 128 KB
-
     override suspend fun fetchSpeedTestServers(): Flow<Resource<ServersResponse>> =
         flow {
             emit(Resource.Loading)
