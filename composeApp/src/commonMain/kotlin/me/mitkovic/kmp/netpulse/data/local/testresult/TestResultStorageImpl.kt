@@ -117,7 +117,7 @@ class TestResultStorageImpl(
             speed = speed,
             resultTimestamp = resultTimestamp,
         )
-        logger.logDebug("TestResultDataSourceImpl", "Triggering insert for sessionId=$sessionId, testType=$testType")
+        logger.logDebug("TestResultStorageImpl", "Triggering insert for sessionId=$sessionId, testType=$testType")
     }
 
     override fun getLatestTestResult(): Flow<TestResult?> =

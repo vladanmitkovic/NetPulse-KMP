@@ -7,8 +7,6 @@ import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
-import me.mitkovic.kmp.netpulse.data.local.database.TestResult
-import me.mitkovic.kmp.netpulse.data.local.database.TestSession
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.model.toDomainModel
@@ -241,45 +239,6 @@ class SpeedTestRepositoryImpl(
                 emit(SpeedTestProgress(isCompleted = true))
             } catch (e: Exception) {
                 emit(SpeedTestProgress(error = e.message ?: SOMETHING_WENT_WRONG))
-            }
-        }
-
-    override fun observeLatestTestSession(serverId: Int): Flow<Resource<TestSession?>> =
-        flow {
-            try {
-                localStorage.testResultStorage
-                    .getLatestSessionByServerId(serverId.toString())
-                    .map {
-                        Resource.Success(it)
-                    }.collect { emit(it) }
-            } catch (e: Exception) {
-                // similar error handling
-                emit(Resource.Error(e.message ?: "Unknown error", null))
-            }
-        }
-
-    override fun observeLatestTestResult(): Flow<Resource<TestResult?>> =
-        flow {
-            try {
-                localStorage.testResultStorage
-                    .getLatestTestResult()
-                    .map {
-                        Resource.Success(it)
-                    }.collect { emit(it) }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) {
-                    logger.logDebug(
-                        tag = SpeedTestRepositoryImpl::class.simpleName,
-                        message = "Observing speed test results cancelled",
-                    )
-                } else {
-                    logger.logError(
-                        tag = SpeedTestRepositoryImpl::class.simpleName,
-                        message = "Error observing speed test result: ${e.message}",
-                        throwable = e,
-                    )
-                    emit(Resource.Error(e.message ?: "Unknown error", null))
-                }
             }
         }
 

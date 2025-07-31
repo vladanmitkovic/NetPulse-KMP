@@ -1,8 +1,6 @@
 package me.mitkovic.kmp.netpulse.domain.repository
 
 import kotlinx.coroutines.flow.Flow
-import me.mitkovic.kmp.netpulse.data.local.database.TestResult
-import me.mitkovic.kmp.netpulse.data.local.database.TestSession
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.domain.model.Server
@@ -23,8 +21,4 @@ interface SpeedTestRepository {
     suspend fun getServer(serverId: Int): Server?
 
     fun executeSpeedTest(server: Server): Flow<SpeedTestProgress>
-
-    fun observeLatestTestSession(serverId: Int): Flow<Resource<TestSession?>>
-
-    fun observeLatestTestResult(): Flow<Resource<TestResult?>>
 }
