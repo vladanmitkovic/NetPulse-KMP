@@ -136,7 +136,7 @@ fun Speedometer(
     val maxSpeed = 1000f
     val speed = if (currentTestType == 1L) downloadSpeed else uploadSpeed
     val angle = (speed / maxSpeed) * 180f
-    val color = if (currentTestType == 1L) Color.Blue else Color.Green
+    val color = if (currentTestType == 1L) Color.Blue else Color.Red
 
     LaunchedEffect(isTestCompleted) {
         if (!isTestCompleted) {
@@ -212,19 +212,20 @@ fun Speedometer(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             ) {
+                val isDownloading = currentTestType == 1L && !isTestCompleted
                 Text(
                     text = "DOWNLOAD",
-                    fontSize = 12.sp,
+                    fontSize = if (isDownloading) 17.sp else 12.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "${downloadSpeed.roundToInt()}",
-                    fontSize = 20.sp,
+                    fontSize = if (isDownloading) 30.sp else 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "Mbps",
-                    fontSize = 12.sp,
+                    fontSize = if (isDownloading) 17.sp else 12.sp,
                     fontWeight = FontWeight.Normal,
                 )
             }
@@ -288,19 +289,20 @@ fun Speedometer(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             ) {
+                val isUploading = currentTestType == 2L && !isTestCompleted
                 Text(
                     text = "UPLOAD",
-                    fontSize = 12.sp,
+                    fontSize = if (isUploading) 17.sp else 12.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "${uploadSpeed.roundToInt()}",
-                    fontSize = 20.sp,
+                    fontSize = if (isUploading) 30.sp else 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "Mbps",
-                    fontSize = 12.sp,
+                    fontSize = if (isUploading) 17.sp else 12.sp,
                     fontWeight = FontWeight.Normal,
                 )
             }
@@ -312,7 +314,7 @@ fun Speedometer(
                         durationMillis = (UPLOAD_TIMEOUT * 1000).toInt(),
                         reset = !isTestCompleted && currentTestType == null,
                         complete = isTestCompleted,
-                        color = Color.Green,
+                        color = Color.Red,
                         fromBottom = true,
                         modifier =
                             Modifier
@@ -326,7 +328,7 @@ fun Speedometer(
                 if (currentTestType == 2L || lastUploadSpeed != null) {
                     LinearChart(
                         speeds = uploadSpeeds,
-                        lineColor = Color.Green,
+                        lineColor = Color.Red,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

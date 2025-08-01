@@ -68,6 +68,9 @@ class HomeScreenViewModel(
     private val _nearestServerByLocationState = MutableStateFlow<NearestServerByLocationUiState>(NearestServerByLocationUiState.Loading)
     val nearestServerByLocationUiState: StateFlow<NearestServerByLocationUiState> = _nearestServerByLocationState.asStateFlow()
 
+    private val _sortedServersState = MutableStateFlow<List<Server>>(emptyList())
+    val sortedServersUiState: StateFlow<List<Server>> = _sortedServersState.asStateFlow()
+
     val serverFlow: StateFlow<ServersUiState> =
         appRepository
             .speedTestRepository
@@ -82,6 +85,7 @@ class HomeScreenViewModel(
                         if (resource.data?.servers?.isNotEmpty() == true) {
                             // findNearestServer()
                             findNearestServerByLocation()
+                            loadSortedServersByDistance()
                         }
                         ServersUiState.Success(servers = resource.data?.servers ?: emptyList())
                     }
@@ -117,6 +121,30 @@ class HomeScreenViewModel(
                     e,
                 )
                 _nearestServerByLocationState.value = NearestServerByLocationUiState.Error(e.message ?: SOMETHING_WENT_WRONG)
+            }
+        }
+    }
+
+    fun selectServer(server: Server) {
+        _nearestServerByLocationState.value = NearestServerByLocationUiState.Success(server)
+    }
+
+    private fun loadSortedServersByDistance() {
+        viewModelScope.launch {
+            try {
+                val sortedServers = appRepository.speedTestRepository.getSortedServersByDistance()
+                _sortedServersState.value = sortedServers
+
+                logger.logDebug(
+                    HomeScreenViewModel::class.simpleName,
+                    "SortedServers location: ${sortedServers ?: "None"}",
+                )
+            } catch (e: Exception) {
+                logger.logError(
+                    HomeScreenViewModel::class.simpleName,
+                    "Error loading sorted servers: ${e.message}",
+                    e,
+                )
             }
         }
     }
