@@ -100,6 +100,13 @@ class RemoteServiceImpl(
             val latencies = mutableListOf<Double>()
             var failedRequests = 0
 
+            // Warm-up ping (discard result)
+            try {
+                client.head(pingUrl)
+            } catch (e: Exception) {
+                // Ignore warm-up errors
+            }
+
             // Perform pings sequentially to ensure accurate jitter calculation
             for (i in 0 until count) {
                 try {
@@ -154,7 +161,7 @@ class RemoteServiceImpl(
         for (server in servers) {
             try {
                 // Ping the server 3 times
-                val pingResult = pingServer(server, count = 3)
+                val pingResult = pingServer(server, count = 5)
                 pingResults.add(server to pingResult)
 
                 logger.logDebug(
@@ -187,7 +194,7 @@ class RemoteServiceImpl(
         return nearestServer
     }
 
-    override suspend fun measurePingAndJitter(server: Server): PingResult = pingServer(server, count = 5) // Adjust count as needed
+    override suspend fun measurePingAndJitter(server: Server): PingResult = pingServer(server, count = 10)
 
     private suspend fun downloadTest(
         server: Server,
