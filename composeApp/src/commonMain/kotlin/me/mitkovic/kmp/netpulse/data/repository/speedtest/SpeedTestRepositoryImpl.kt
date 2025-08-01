@@ -256,4 +256,16 @@ class SpeedTestRepositoryImpl(
                 if (server == null) logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No closest server found")
             }
     }
+
+    override suspend fun getSortedServersByDistance(): List<Server> {
+        val servers =
+            localStorage.serverStorage
+                .retrieveServers()
+                .firstOrNull()
+                ?.toDomainModel()
+                ?.servers ?: return emptyList<Server>().also {
+                logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
+            }
+        return servers.sortedBy { it.distance ?: Double.MAX_VALUE }
+    }
 }

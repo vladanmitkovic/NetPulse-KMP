@@ -18,6 +18,8 @@ interface SpeedTestRepository {
 
     suspend fun findClosestServerByDistance(): Server?
 
+    suspend fun getSortedServersByDistance(): List<Server>
+
     suspend fun getServer(serverId: Int): Server?
 
     fun executeSpeedTest(server: Server): Flow<SpeedTestProgress>
