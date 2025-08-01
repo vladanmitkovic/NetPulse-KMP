@@ -137,7 +137,7 @@ class HomeScreenViewModel(
 
                 logger.logDebug(
                     HomeScreenViewModel::class.simpleName,
-                    "SortedServers location: ${sortedServers ?: "None"}",
+                    "SortedServers location: $sortedServers",
                 )
             } catch (e: Exception) {
                 logger.logError(
