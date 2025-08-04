@@ -217,7 +217,7 @@ class RemoteServiceImpl(
                         "Response headers: ${response.headers.entries().joinToString { "${it.key}: ${it.value.joinToString()}" }}",
                     )
                     val channel = response.bodyAsChannel()
-                    val buffer = ByteArray(8192)
+                    val buffer = ByteArray(16384)
                     while (!channel.isClosedForRead) {
                         val bytesRead = channel.readAvailable(buffer, 0, buffer.size)
                         if (bytesRead == -1) break
@@ -243,22 +243,24 @@ class RemoteServiceImpl(
         timeout: Double,
         onResult: suspend (Double) -> Unit,
     ) = coroutineScope {
-        val initialSpeed = downloadTest(server, initialImageSize)
-        if (initialSpeed < 0) return@coroutineScope
-        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial download speed: $initialSpeed MB/s")
+        // Multi-thread probe
+        val probeTasks = List(2) { async(Dispatchers.IO) { downloadTest(server, initialImageSize) } }
+        val probeSpeeds = probeTasks.awaitAll().filter { it >= 0 }
+        val initialSpeed = probeSpeeds.sum()
+        if (initialSpeed <= 0) return@coroutineScope
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial multi-thread download speed: $initialSpeed MB/s")
         onResult(initialSpeed)
+
         val totalSizeInMB = initialSpeed * timeout
-        val sizePerThread = totalSizeInMB / 4
-        val selectedSize =
-            imageSizes
-                .filter { it.second <= sizePerThread }
-                .maxByOrNull { it.second }
-                ?.first
-                ?: throw Exception("No suitable image size found for speed $initialSpeed MB/s")
+        val sizePerThread = totalSizeInMB / 8
+        val selectedSize = imageSizes.filter { it.second <= sizePerThread }.maxByOrNull { it.second }?.first ?: "1000" // Fallback
+
         val startTime = Clock.System.now().toEpochMilliseconds()
         while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
             val tasks = List(2) { async(Dispatchers.IO) { downloadTest(server, selectedSize) } }
-            tasks.awaitAll().forEach { speed -> if (speed >= 0) onResult(speed) }
+            val speeds = tasks.awaitAll().filter { it >= 0 }
+            val iterationSpeed = speeds.sum()
+            onResult(iterationSpeed)
         }
     }
 
@@ -299,17 +301,24 @@ class RemoteServiceImpl(
         timeout: Double,
         onResult: suspend (Double) -> Unit,
     ) = coroutineScope {
-        val initialSpeed = uploadTest(server, initialPayloadSize)
-        if (initialSpeed < 0) return@coroutineScope
-        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial upload speed: $initialSpeed MB/s")
+        // Multi-thread probe
+        val probeTasks = List(2) { async(Dispatchers.IO) { uploadTest(server, initialPayloadSize / 2) } }
+        val probeSpeeds = probeTasks.awaitAll().filter { it >= 0 }
+        val initialSpeed = probeSpeeds.sum()
+        if (initialSpeed <= 0) return@coroutineScope
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "Initial multi-thread upload speed: $initialSpeed MB/s")
         onResult(initialSpeed)
+
         val totalSizeInMB = initialSpeed * timeout
         val totalSizeInBytes = (totalSizeInMB * 1024 * 1024).toInt()
         val sizePerThread = totalSizeInBytes / 2
+
         val startTime = Clock.System.now().toEpochMilliseconds()
         while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
             val tasks = List(2) { async(Dispatchers.IO) { uploadTest(server, sizePerThread) } }
-            tasks.awaitAll().forEach { speed -> if (speed >= 0) onResult(speed) }
+            val speeds = tasks.awaitAll().filter { it >= 0 }
+            val iterationSpeed = speeds.sum()
+            onResult(iterationSpeed)
         }
     }
 
