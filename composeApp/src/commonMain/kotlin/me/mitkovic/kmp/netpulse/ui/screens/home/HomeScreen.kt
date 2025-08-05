@@ -120,7 +120,7 @@ fun HomeScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                "${server.name} - ${server.country} - ${
+                                                "${server.name} - ${server.sponsor} - ${server.country} - ${
                                                     server.distance?.let { (it / 1000).roundToInt() } ?: "N/A"
                                                 } km",
                                             )
