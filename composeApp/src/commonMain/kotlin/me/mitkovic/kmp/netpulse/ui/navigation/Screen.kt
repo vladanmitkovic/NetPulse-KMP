@@ -11,4 +11,10 @@ sealed class Screen {
     data class SpeedTest(
         val serverId: Int,
     ) : Screen()
+
+    @Serializable
+    object History : Screen()
+
+    @Serializable
+    object Settings : Screen()
 }
