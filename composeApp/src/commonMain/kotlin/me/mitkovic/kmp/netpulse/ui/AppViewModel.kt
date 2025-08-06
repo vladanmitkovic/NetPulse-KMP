@@ -41,4 +41,11 @@ class AppViewModel(
                 }
         }
     }
+
+    fun logMessage(
+        message: String,
+        throwable: Throwable?,
+    ) {
+        logger.logError(AppViewModel::class.simpleName, message, throwable)
+    }
 }
