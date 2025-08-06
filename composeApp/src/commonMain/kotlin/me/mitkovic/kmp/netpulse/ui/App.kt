@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.ui.common.ApplicationTitle
+import me.mitkovic.kmp.netpulse.ui.common.BottomNavigationBar
 import me.mitkovic.kmp.netpulse.ui.navigation.AppNavHost
 import me.mitkovic.kmp.netpulse.ui.theme.AppTheme
 import me.mitkovic.kmp.netpulse.ui.theme.spacing
@@ -50,7 +51,8 @@ sealed class MainAction {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    koinInject<AppViewModel>()
+    val viewModel: AppViewModel = koinInject<AppViewModel>()
+
     val appLogger: AppLogger = koinInject()
     appLogger.logDebug("App", "App Start from: ${Greeting().greet()}")
 
@@ -88,6 +90,18 @@ fun App() {
                         }
                     },
                 )
+            },
+            bottomBar = {
+                Column {
+                    // Bottom Navigation Bar
+                    BottomNavigationBar(
+                        navController = navController,
+                        onError = { message, throwable ->
+                            viewModel.logMessage(message, throwable)
+                        },
+                        logger = appLogger,
+                    )
+                }
             },
         ) { innerPadding ->
 

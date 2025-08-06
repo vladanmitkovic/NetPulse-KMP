@@ -3,7 +3,9 @@ package me.mitkovic.kmp.netpulse.di
 import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.ui.AppViewModel
+import me.mitkovic.kmp.netpulse.ui.screens.history.HistoryScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.home.HomeScreenViewModel
+import me.mitkovic.kmp.netpulse.ui.screens.settings.SettingsScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.speedtest.SpeedTestScreenViewModel
 import org.koin.dsl.module
 
@@ -26,6 +28,18 @@ val viewModelModule =
                 appRepository = get<AppRepository>(),
                 logger = get<AppLogger>(),
                 serverId = serverId,
+            )
+        }
+        factory {
+            HistoryScreenViewModel(
+                appRepository = get<AppRepository>(),
+                logger = get<AppLogger>(),
+            )
+        }
+        factory {
+            SettingsScreenViewModel(
+                appRepository = get<AppRepository>(),
+                logger = get<AppLogger>(),
             )
         }
     }
