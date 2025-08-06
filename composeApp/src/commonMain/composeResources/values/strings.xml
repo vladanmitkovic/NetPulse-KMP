@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">NetPulse</string>
+    <string name="speed_test">Speed Test</string>
+    <string name="content_description_application_icon">Application icon</string>
+    <string name="content_description_back_arrow">Back arrow</string>
+</resources>
