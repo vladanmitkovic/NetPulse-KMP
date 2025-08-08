@@ -15,9 +15,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
@@ -25,28 +22,13 @@ import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.ui.common.ApplicationTitle
 import me.mitkovic.kmp.netpulse.ui.common.BottomNavigationBar
 import me.mitkovic.kmp.netpulse.ui.navigation.AppNavHost
+import me.mitkovic.kmp.netpulse.ui.navigation.currentTopBarState
 import me.mitkovic.kmp.netpulse.ui.theme.AppTheme
 import me.mitkovic.kmp.netpulse.ui.theme.spacing
 import netpulse_kmp.composeapp.generated.resources.Res
-import netpulse_kmp.composeapp.generated.resources.app_name
 import netpulse_kmp.composeapp.generated.resources.content_description_back_arrow
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
-
-sealed class MainAction {
-    data class TitleTextChanged(
-        val title: String,
-    ) : MainAction()
-
-    data class ShowActionsChanged(
-        val showActions: Boolean,
-    ) : MainAction()
-
-    data class ShowBackIconChanged(
-        val showBackButton: Boolean,
-    ) : MainAction()
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,29 +38,22 @@ fun App() {
     val appLogger: AppLogger = koinInject()
     appLogger.logDebug("App", "App Start from: ${Greeting().greet()}")
 
-    val topBarTitle = remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        topBarTitle.value = getString(Res.string.app_name)
-    }
-
-    val showActions = remember { mutableStateOf(false) }
-    val showBackIcon = remember { mutableStateOf(false) }
-
     val navController = rememberNavController()
+    val topBarState = navController.currentTopBarState()
 
     AppTheme(isLightTheme = true) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
-                        ApplicationTitle(topBarTitle.value, showActions.value)
+                        ApplicationTitle(topBarState.title, topBarState.showActions)
                     },
                     colors =
                         TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.background,
                         ),
                     navigationIcon = {
-                        if (showBackIcon.value) {
+                        if (topBarState.showBackIcon) {
                             IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -96,10 +71,6 @@ fun App() {
                     // Bottom Navigation Bar
                     BottomNavigationBar(
                         navController = navController,
-                        onError = { message, throwable ->
-                            viewModel.logMessage(message, throwable)
-                        },
-                        logger = appLogger,
                     )
                 }
             },
@@ -115,13 +86,6 @@ fun App() {
             ) {
                 AppNavHost(
                     navHostController = navController,
-                    onAction = { action ->
-                        when (action) {
-                            is MainAction.TitleTextChanged -> topBarTitle.value = action.title
-                            is MainAction.ShowActionsChanged -> showActions.value = action.showActions
-                            is MainAction.ShowBackIconChanged -> showBackIcon.value = action.showBackButton
-                        }
-                    },
                 )
             }
         }
