@@ -36,10 +36,7 @@ import me.mitkovic.kmp.netpulse.ui.components.VerticalProgressIndicator
 import kotlin.math.roundToInt
 
 @Composable
-fun SpeedTestScreen(
-    viewModel: SpeedTestScreenViewModel,
-    onBackClick: () -> Unit,
-) {
+fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
     val serverState by viewModel.serverUiState.collectAsStateWithLifecycle()
     val serverStateValue = serverState
     val databaseUiStateValue by viewModel.databaseUiState.collectAsStateWithLifecycle()

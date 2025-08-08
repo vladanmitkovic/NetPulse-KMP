@@ -4,9 +4,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @Composable
-fun HistoryScreen(
-    viewModel: HistoryScreenViewModel,
-    onBackClick: () -> Unit,
-) {
+fun HistoryScreen(viewModel: HistoryScreenViewModel) {
     Text(text = "HistoryScreen")
 }

@@ -6,71 +6,52 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.ui.navigation.BottomNavigation
-import me.mitkovic.kmp.netpulse.ui.utils.NavigationUtils.isSelectedRoute
+import me.mitkovic.kmp.netpulse.ui.navigation.Screen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun BottomNavigationBar(
-    navController: NavController,
-    onError: (String, Throwable?) -> Unit,
-    logger: AppLogger,
-) {
+fun BottomNavigationBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute =
-        navBackStackEntry?.destination?.route
-            ?: BottomNavigation.HOME.route::class.qualifiedName.orEmpty()
-
-    val currentRouteTrimmed by remember(currentRoute) {
-        derivedStateOf { currentRoute.substringBefore("?") }
-    }
+    val currentDestination = navBackStackEntry?.destination
 
     BottomAppBar(
         containerColor = MaterialTheme.colorScheme.background,
         contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
-        BottomNavigation.entries.forEachIndexed { index, navigationItem ->
+        BottomNavigation.entries.forEach { navigationItem ->
+            val isSelected =
+                when (navigationItem) {
+                    BottomNavigation.HOME -> {
+                        currentDestination?.hasRoute(Screen.Home::class) == true ||
+                            currentDestination?.hasRoute(Screen.SpeedTest::class) == true
+                    }
+                    else -> currentDestination?.hasRoute(navigationItem.route::class) == true
+                }
+
             NavigationBarItem(
-                selected =
-                    isSelectedRoute(
-                        currentRouteTrimmed,
-                        navigationItem.route::class.qualifiedName.toString(),
-                        navController,
-                        logger,
-                    ),
+                selected = isSelected,
                 label = { Text(stringResource(navigationItem.label)) },
                 icon = {
                     Icon(
-                        painter = painterResource(resource = navigationItem.icon),
-                        contentDescription = stringResource(resource = navigationItem.label),
+                        painter = painterResource(navigationItem.icon),
+                        contentDescription = stringResource(navigationItem.label),
                     )
                 },
                 onClick = {
-                    if (navBackStackEntry?.destination?.route != navigationItem.route::class.qualifiedName.toString()) {
-                        try {
-                            navController.navigate(navigationItem.route::class.qualifiedName.toString()) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    inclusive = false
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+                    if (currentDestination?.hasRoute(navigationItem.route::class) != true) {
+                        navController.navigate(navigationItem.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        } catch (e: Exception) {
-                            onError("Navigation error: ${e.message}", e)
+                            launchSingleTop = true
                         }
-                    } else {
-                        navController.popBackStack(
-                            navigationItem.route::class.qualifiedName.toString(),
-                            inclusive = false,
-                        )
                     }
                 },
             )
