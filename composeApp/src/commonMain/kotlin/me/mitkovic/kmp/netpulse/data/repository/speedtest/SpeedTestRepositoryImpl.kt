@@ -1,11 +1,15 @@
 package me.mitkovic.kmp.netpulse.data.repository.speedtest
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.local.database.TestResult
+import me.mitkovic.kmp.netpulse.data.local.database.TestSession
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.model.toDomainModel
@@ -28,13 +32,12 @@ class SpeedTestRepositoryImpl(
 ) : SpeedTestRepository {
 
     override fun getServers(): Flow<Resource<ServersResponse?>> =
-        flow {
-            try {
-                localStorage.serverStorage.retrieveServers().collect { localResponse ->
-                    val domainResponse = localResponse?.toDomainModel()
-                    emit(Resource.Success(domainResponse))
-                }
-            } catch (e: Exception) {
+        localStorage.serverStorage
+            .retrieveServers()
+            .map { serversResponse ->
+                val result: Resource<ServersResponse?> = Resource.Success(serversResponse?.toDomainModel())
+                result
+            }.catch { e ->
                 if (e is kotlinx.coroutines.CancellationException) {
                     logger.logDebug(
                         tag = SpeedTestRepositoryImpl::class.simpleName,
@@ -49,7 +52,6 @@ class SpeedTestRepositoryImpl(
                     emit(Resource.Error(e.message ?: "Unknown error", e))
                 }
             }
-        }
 
     override suspend fun getServer(serverId: Int): Server? =
         try {
@@ -64,6 +66,7 @@ class SpeedTestRepositoryImpl(
             null
         }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun fetchAndSaveUserLocation(): UserLocation? {
         try {
             localStorage.locationStorage.clearCurrentLocation()
@@ -72,7 +75,7 @@ class SpeedTestRepositoryImpl(
                     logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "Unable to get user location")
                 }
             val timestamp =
-                kotlinx.datetime.Clock.System
+                Clock.System
                     .now()
                     .toEpochMilliseconds()
             localStorage.locationStorage.storeCurrentLocation(response, timestamp)
@@ -83,55 +86,50 @@ class SpeedTestRepositoryImpl(
         }
     }
 
-    override fun syncServers(): Flow<Resource<ServersResponse?>> =
-        flow {
-            emit(Resource.Loading)
-            try {
-                remoteService.fetchSpeedTestServers().collect { remoteResult ->
-                    when (remoteResult) {
-                        is Resource.Success -> {
-                            logger.logError(
-                                tag = SpeedTestRepositoryImpl::class.simpleName,
-                                message = "refreshServers servers: ${remoteResult.data}",
-                                throwable = null,
-                            )
-
-                            val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
-                            val modifiedServers =
-                                remoteResult.data.servers.map { server ->
-                                    val lat = server.attrs["lat"]?.toDouble() ?: 0.0
-                                    val lon = server.attrs["lon"]?.toDouble() ?: 0.0
-                                    val dist =
-                                        if (currentLocation != null) {
-                                            (haversineDistance(currentLocation.latitude, currentLocation.longitude, lat, lon) * 1000)
-                                        } else {
-                                            0.0
-                                        }
-                                    DataServer(
-                                        attrs =
-                                            server.attrs.toMutableMap().apply {
-                                                put("distance", dist.toString())
-                                            },
-                                    )
-                                }
-                            val modifiedResponse = DataServersResponse(servers = modifiedServers)
-                            localStorage.serverStorage.storeServers(response = modifiedResponse)
-                            emit(Resource.Success(modifiedResponse.toDomainModel()))
-                        }
-                        is Resource.Error -> {
-                            logger.logError(
-                                tag = SpeedTestRepositoryImpl::class.simpleName,
-                                message = "Remote error: ${remoteResult.throwable?.message}",
-                                throwable = remoteResult.throwable,
-                            )
-                            emit(Resource.Error(remoteResult.throwable?.message ?: "Unknown error", remoteResult.throwable))
-                        }
-                        is Resource.Loading -> {
-                            emit(Resource.Loading)
-                        }
+    override suspend fun syncServers(): Flow<Resource<ServersResponse?>> =
+        remoteService
+            .fetchSpeedTestServers()
+            .map { remoteResult ->
+                when (remoteResult) {
+                    is Resource.Success -> {
+                        logger.logError(
+                            tag = SpeedTestRepositoryImpl::class.simpleName,
+                            message = "refreshServers servers: ${remoteResult.data}",
+                            throwable = null,
+                        )
+                        val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+                        val modifiedServers =
+                            remoteResult.data.servers.map { server ->
+                                val lat = server.attrs["lat"]?.toDouble() ?: 0.0
+                                val lon = server.attrs["lon"]?.toDouble() ?: 0.0
+                                val dist =
+                                    if (currentLocation != null) {
+                                        (haversineDistance(currentLocation.latitude, currentLocation.longitude, lat, lon) * 1000)
+                                    } else {
+                                        0.0
+                                    }
+                                DataServer(
+                                    attrs =
+                                        server.attrs.toMutableMap().apply {
+                                            put("distance", dist.toString())
+                                        },
+                                )
+                            }
+                        val modifiedResponse = DataServersResponse(servers = modifiedServers)
+                        localStorage.serverStorage.storeServers(response = modifiedResponse)
+                        Resource.Success(modifiedResponse.toDomainModel())
                     }
+                    is Resource.Error -> {
+                        logger.logError(
+                            tag = SpeedTestRepositoryImpl::class.simpleName,
+                            message = "Remote error: ${remoteResult.throwable?.message}",
+                            throwable = remoteResult.throwable,
+                        )
+                        Resource.Error(remoteResult.throwable?.message ?: "Unknown error", remoteResult.throwable)
+                    }
+                    is Resource.Loading -> Resource.Loading
                 }
-            } catch (e: Exception) {
+            }.catch { e ->
                 logger.logError(
                     tag = SpeedTestRepositoryImpl::class.simpleName,
                     message = "Error refreshing servers: ${e.message}",
@@ -139,7 +137,6 @@ class SpeedTestRepositoryImpl(
                 )
                 emit(Resource.Error(e.message ?: "Unknown error", e))
             }
-        }
 
     override suspend fun findLowestLatencyServer(): Server? {
         val servers =
@@ -208,14 +205,20 @@ class SpeedTestRepositoryImpl(
                         testLocationId = testLocationId,
                         ping = null,
                         jitter = null,
+                        packetLoss = null,
                         testTimestamp = timestamp,
                     )
 
                 val pingResult = remoteService.measurePingAndJitter(server)
 
-                emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter))
+                emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter, packetLoss = pingResult.packetLoss))
 
-                localStorage.testResultStorage.updateTestSessionPingJitter(sessionId, pingResult.averageLatency, pingResult.jitter)
+                localStorage.testResultStorage.updateTestSessionPingJitterPacketLoss(
+                    sessionId,
+                    pingResult.averageLatency,
+                    pingResult.jitter,
+                    pingResult.packetLoss,
+                )
 
                 val initialImageSize = "1000"
 
@@ -267,5 +270,14 @@ class SpeedTestRepositoryImpl(
                 logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
             }
         return servers.sortedBy { it.distance ?: Double.MAX_VALUE }
+    }
+
+    override fun getTestSessions(): Flow<List<TestSession>> = localStorage.testResultStorage.getTestSessions()
+
+    override fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>> =
+        localStorage.testResultStorage.getTestResultsBySessionId(sessionId)
+
+    override suspend fun deleteTestSession(sessionId: Long) {
+        localStorage.testResultStorage.deleteTestSession(sessionId)
     }
 }

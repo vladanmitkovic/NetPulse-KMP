@@ -79,6 +79,7 @@ class SpeedTestScreenViewModel(
             appRepository.speedTestRepository.executeSpeedTest(server).collect { prog ->
                 if (prog.ping != null) _progress.value = _progress.value.copy(ping = prog.ping)
                 if (prog.jitter != null) _progress.value = _progress.value.copy(jitter = prog.jitter)
+                if (prog.packetLoss != null) _progress.value = _progress.value.copy(packetLoss = prog.packetLoss)
                 if (prog.downloadSpeed != null) _progress.value = _progress.value.copy(downloadSpeed = prog.downloadSpeed)
                 if (prog.uploadSpeed != null) _progress.value = _progress.value.copy(uploadSpeed = prog.uploadSpeed)
                 if (prog.isCompleted) _databaseUiState.value = DatabaseUiState.Completed

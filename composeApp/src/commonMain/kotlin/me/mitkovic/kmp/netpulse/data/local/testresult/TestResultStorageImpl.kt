@@ -1,6 +1,7 @@
 package me.mitkovic.kmp.netpulse.data.local.testresult
 
 import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -27,6 +28,7 @@ class TestResultStorageImpl(
         testLocationId: Long,
         ping: Double?,
         jitter: Double?,
+        packetLoss: Double?,
         testTimestamp: Long,
     ): Long {
         var id: Long = 0
@@ -42,6 +44,7 @@ class TestResultStorageImpl(
                 testLocationId = testLocationId,
                 ping = ping,
                 jitter = jitter,
+                packetLoss = packetLoss,
                 testTimestamp = testTimestamp,
             )
             id = database.netPulseDatabaseQueries.lastInsertRowId().executeAsOne()
@@ -69,6 +72,7 @@ class TestResultStorageImpl(
                         testLocationId = it.testLocationId,
                         ping = it.ping,
                         jitter = it.jitter,
+                        packetLoss = it.packetLoss,
                     )
                 }
             }
@@ -93,16 +97,18 @@ class TestResultStorageImpl(
                         testLocationId = it.testLocationId,
                         ping = it.ping,
                         jitter = it.jitter,
+                        packetLoss = it.packetLoss,
                     )
                 }
             }
 
-    override suspend fun updateTestSessionPingJitter(
+    override suspend fun updateTestSessionPingJitterPacketLoss(
         sessionId: Long,
         ping: Double,
         jitter: Double,
+        packetLoss: Double,
     ) {
-        database.netPulseDatabaseQueries.updateTestSessionPingJitter(ping, jitter, sessionId)
+        database.netPulseDatabaseQueries.updateTestSessionPingJitterPacketLoss(ping, jitter, packetLoss, sessionId)
     }
 
     override suspend fun insertTestResult(
@@ -125,4 +131,54 @@ class TestResultStorageImpl(
             .getLatestTestResult()
             .asFlow()
             .mapToOneOrNull(Dispatchers.IO)
+
+    override fun getTestSessions(): Flow<List<TestSession>> =
+        database.netPulseDatabaseQueries
+            .getTestSessions()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { entities ->
+                entities.map { entity ->
+                    TestSession(
+                        sessionId = entity.sessionId,
+                        serverId = entity.serverId,
+                        serverUrl = entity.serverUrl,
+                        serverName = entity.serverName,
+                        serverCountry = entity.serverCountry,
+                        serverSponsor = entity.serverSponsor,
+                        serverHost = entity.serverHost,
+                        serverDistance = entity.serverDistance,
+                        ping = entity.ping,
+                        jitter = entity.jitter,
+                        packetLoss = entity.packetLoss,
+                        testTimestamp = entity.testTimestamp,
+                        testLocationId = entity.testLocationId,
+                    )
+                }
+            }
+
+    override fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>> =
+        database.netPulseDatabaseQueries
+            .getTestResultsBySessionId(sessionId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { entities ->
+                entities.map { entity ->
+                    TestResult(
+                        resultId = entity.resultId,
+                        sessionId = entity.sessionId,
+                        testType = entity.testType,
+                        speed = entity.speed,
+                        resultTimestamp = entity.resultTimestamp,
+                    )
+                }
+            }
+
+    override suspend fun deleteTestSession(sessionId: Long) {
+        database.netPulseDatabaseQueries.transaction {
+            database.netPulseDatabaseQueries.deleteTestResultsBySessionId(sessionId)
+            database.netPulseDatabaseQueries.deleteTestSession(sessionId)
+        }
+        logger.logDebug("TestResultStorageImpl", "Deleted sessionId=$sessionId and its results")
+    }
 }
