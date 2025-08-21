@@ -1,6 +1,7 @@
 package me.mitkovic.kmp.netpulse.data.local.testresult
 
 import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -125,4 +126,45 @@ class TestResultStorageImpl(
             .getLatestTestResult()
             .asFlow()
             .mapToOneOrNull(Dispatchers.IO)
+
+    override fun getTestSessions(): Flow<List<TestSession>> =
+        database.netPulseDatabaseQueries
+            .getTestSessions()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { entities ->
+                entities.map { entity ->
+                    TestSession(
+                        sessionId = entity.sessionId,
+                        serverId = entity.serverId,
+                        serverUrl = entity.serverUrl,
+                        serverName = entity.serverName,
+                        serverCountry = entity.serverCountry,
+                        serverSponsor = entity.serverSponsor,
+                        serverHost = entity.serverHost,
+                        serverDistance = entity.serverDistance,
+                        ping = entity.ping,
+                        jitter = entity.jitter,
+                        testTimestamp = entity.testTimestamp,
+                        testLocationId = entity.testLocationId,
+                    )
+                }
+            }
+
+    override fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>> =
+        database.netPulseDatabaseQueries
+            .getTestResultsBySessionId(sessionId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { entities ->
+                entities.map { entity ->
+                    TestResult(
+                        resultId = entity.resultId,
+                        sessionId = entity.sessionId,
+                        testType = entity.testType,
+                        speed = entity.speed,
+                        resultTimestamp = entity.resultTimestamp,
+                    )
+                }
+            }
 }

@@ -1,6 +1,7 @@
 package me.mitkovic.kmp.netpulse.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -74,15 +75,12 @@ fun App() {
                     )
                 }
             },
-        ) { innerPadding ->
-
-            Column(
+        ) { paddingValues ->
+            Box(
                 modifier =
                     Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                        .padding(paddingValues)
+                        .background(MaterialTheme.colorScheme.background),
             ) {
                 AppNavHost(
                     navHostController = navController,

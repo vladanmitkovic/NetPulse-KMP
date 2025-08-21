@@ -37,4 +37,8 @@ interface TestResultStorage {
     )
 
     fun getLatestTestResult(): Flow<TestResult?>
+
+    fun getTestSessions(): Flow<List<TestSession>>
+
+    fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>>
 }
