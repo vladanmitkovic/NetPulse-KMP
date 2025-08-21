@@ -109,7 +109,7 @@ class RemoteServiceImpl(
             }
 
             // Perform pings sequentially to ensure accurate jitter calculation
-            for (i in 0 until count) {
+            repeat(count) {
                 try {
                     val latency =
                         measureTime {
