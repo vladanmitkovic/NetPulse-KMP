@@ -20,7 +20,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.datetime.Clock
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.data.model.PingResult
@@ -33,7 +32,9 @@ import me.mitkovic.kmp.netpulse.util.calculateJitter
 import me.mitkovic.kmp.netpulse.util.calculatePacketLoss
 import nl.adaptivity.xmlutil.serialization.XML
 import kotlin.random.Random
+import kotlin.time.Clock
 import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 class RemoteServiceImpl(
@@ -196,6 +197,7 @@ class RemoteServiceImpl(
 
     override suspend fun measurePingAndJitter(server: Server): PingResult = pingServer(server, count = 10)
 
+    @OptIn(ExperimentalTime::class)
     private suspend fun downloadTest(
         server: Server,
         imageSize: String,
@@ -237,6 +239,7 @@ class RemoteServiceImpl(
         return speed
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun downloadTestMultiThread(
         server: Server,
         initialImageSize: String,
@@ -295,6 +298,7 @@ class RemoteServiceImpl(
         return speed
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun uploadTestMultiThread(
         server: Server,
         initialPayloadSize: Int,

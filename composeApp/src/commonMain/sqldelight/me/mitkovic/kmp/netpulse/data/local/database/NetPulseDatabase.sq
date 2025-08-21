@@ -90,6 +90,7 @@ CREATE TABLE TestSession (
     serverDistance REAL NOT NULL,
     ping REAL,
     jitter REAL,
+    packetLoss REAL,
     testTimestamp INTEGER NOT NULL,
     testLocationId INTEGER NOT NULL REFERENCES TestLocation(id)
 );
@@ -153,8 +154,8 @@ DELETE FROM Server;
 -- Insert a test session
 insertTestSession:
 INSERT INTO TestSession (
-    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, serverDistance, testLocationId, ping, jitter, testTimestamp
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    serverId, serverUrl, serverName, serverCountry, serverSponsor, serverHost, serverDistance, testLocationId, ping, jitter, packetLoss, testTimestamp
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get all test sessions, ordered by timestamp
 getTestSessions:
@@ -173,6 +174,10 @@ LIMIT 1;
 -- updateTestSessionPingJitter
 updateTestSessionPingJitter:
 UPDATE TestSession SET ping = ?, jitter = ? WHERE sessionId = ?;
+
+-- Add new query to update ping, jitter, and packetLoss
+updateTestSessionPingJitterPacketLoss:
+UPDATE TestSession SET ping = ?, jitter = ?, packetLoss = ? WHERE sessionId = ?;
 
 -- Insert a test result
 insertTestResult:
@@ -193,3 +198,10 @@ getLatestTestResult:
 SELECT * FROM TestResult
 ORDER BY resultTimestamp DESC
 LIMIT 1;
+
+-- add to .sq file
+deleteTestResultsBySessionId:
+DELETE FROM TestResult WHERE sessionId = ?;
+
+deleteTestSession:
+DELETE FROM TestSession WHERE sessionId = ?;

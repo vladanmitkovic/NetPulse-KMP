@@ -29,4 +29,6 @@ interface SpeedTestRepository {
     fun getTestSessions(): Flow<List<TestSession>>
 
     fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>>
+
+    suspend fun deleteTestSession(sessionId: Long)
 }

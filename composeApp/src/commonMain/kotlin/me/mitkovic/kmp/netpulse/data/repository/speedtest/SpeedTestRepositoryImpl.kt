@@ -66,6 +66,7 @@ class SpeedTestRepositoryImpl(
             null
         }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun fetchAndSaveUserLocation(): UserLocation? {
         try {
             localStorage.locationStorage.clearCurrentLocation()
@@ -74,7 +75,7 @@ class SpeedTestRepositoryImpl(
                     logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "Unable to get user location")
                 }
             val timestamp =
-                kotlinx.datetime.Clock.System
+                Clock.System
                     .now()
                     .toEpochMilliseconds()
             localStorage.locationStorage.storeCurrentLocation(response, timestamp)
@@ -204,14 +205,20 @@ class SpeedTestRepositoryImpl(
                         testLocationId = testLocationId,
                         ping = null,
                         jitter = null,
+                        packetLoss = null,
                         testTimestamp = timestamp,
                     )
 
                 val pingResult = remoteService.measurePingAndJitter(server)
 
-                emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter))
+                emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter, packetLoss = pingResult.packetLoss))
 
-                localStorage.testResultStorage.updateTestSessionPingJitter(sessionId, pingResult.averageLatency, pingResult.jitter)
+                localStorage.testResultStorage.updateTestSessionPingJitterPacketLoss(
+                    sessionId,
+                    pingResult.averageLatency,
+                    pingResult.jitter,
+                    pingResult.packetLoss,
+                )
 
                 val initialImageSize = "1000"
 
@@ -269,4 +276,8 @@ class SpeedTestRepositoryImpl(
 
     override fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>> =
         localStorage.testResultStorage.getTestResultsBySessionId(sessionId)
+
+    override suspend fun deleteTestSession(sessionId: Long) {
+        localStorage.testResultStorage.deleteTestSession(sessionId)
+    }
 }

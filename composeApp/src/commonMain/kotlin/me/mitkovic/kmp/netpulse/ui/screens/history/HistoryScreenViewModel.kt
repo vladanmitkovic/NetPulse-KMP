@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.domain.model.TestHistory
 import me.mitkovic.kmp.netpulse.logging.AppLogger
@@ -41,6 +42,11 @@ class HistoryScreenViewModel(
                                     val download = downloadResults.maxByOrNull { it.resultTimestamp }?.speed
                                     val upload = uploadResults.maxByOrNull { it.resultTimestamp }?.speed
 
+                                    logger.logDebug(
+                                        "HistoryScreenViewModel",
+                                        "Session Obj: $session}",
+                                    )
+
                                     // Logging all download speeds for this session
                                     logger.logDebug(
                                         "HistoryScreenViewModel",
@@ -62,8 +68,11 @@ class HistoryScreenViewModel(
                                         timestamp = session.testTimestamp,
                                         serverName = session.serverName,
                                         serverCountry = session.serverCountry,
+                                        serverSponsor = session.serverSponsor,
+                                        serverDistance = session.serverDistance,
                                         ping = session.ping,
                                         jitter = session.jitter,
+                                        packetLoss = session.packetLoss,
                                         downloadSpeed = download,
                                         uploadSpeed = upload,
                                         downloadSpeeds = downloadSpeeds,
@@ -83,4 +92,10 @@ class HistoryScreenViewModel(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptyList(),
             )
+
+    fun deleteSession(sessionId: Long) {
+        viewModelScope.launch {
+            appRepository.speedTestRepository.deleteTestSession(sessionId)
+        }
+    }
 }

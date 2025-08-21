@@ -1,23 +1,23 @@
 [versions]
 agp = "8.12.1"
-android-compileSdk = "35"
+android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "35"
 androidx-activity = "1.10.1"
-androidx-lifecycle = "2.9.0"
-composeHotReload = "1.0.0-alpha10"
-composeMultiplatform = "1.8.1"
-kotlin = "2.1.21"
+androidx-lifecycle = "2.9.1"
+composeHotReload = "1.0.0-beta05"
+composeMultiplatform = "1.8.2"
+kotlin = "2.2.10"
 kotlinx-coroutines = "1.10.2"
 
 koin = "4.0.2"
 timber = "5.0.1"
 datastore = "1.1.7"
-ktor = "3.1.1"
-sqldelight = "2.0.0"
-androidx-navigation = "2.8.0-alpha11"
-xmlutil = "0.91.1"
-kotlinx-datetime = "0.6.1"
+ktor = "3.2.3"
+sqldelight = "2.1.0"
+androidx-navigation = "2.8.0-alpha13"
+xmlutil = "0.91.2"
+kotlinx-datetime = "0.7.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

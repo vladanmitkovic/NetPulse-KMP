@@ -177,7 +177,7 @@ fun Speedometer(
             }
         }
 
-        // Below the gauge, show the two rows with columns
+        // Two columns: left for Ping/Jitter/PacketLoss, right for Download/Upload
         Row(
             modifier =
                 Modifier
@@ -185,6 +185,7 @@ fun Speedometer(
                     .padding(top = 32.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
+            // Left column: Ping, Jitter, Packet Loss
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
@@ -204,72 +205,11 @@ fun Speedometer(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                 )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            ) {
-                val isDownloading = currentTestType == 1L && !isTestCompleted
-                Text(
-                    text = "DOWNLOAD",
-                    fontSize = if (isDownloading) 17.sp else 12.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "${downloadSpeed.roundToInt()}",
-                    fontSize = if (isDownloading) 30.sp else 20.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Mbps",
-                    fontSize = if (isDownloading) 17.sp else 12.sp,
-                    fontWeight = FontWeight.Normal,
-                )
-            }
-            Box(modifier = Modifier.width(20.dp)) {
-                if (currentTestType == 1L || lastDownloadSpeed != null) {
-                    VerticalProgressIndicator(
-                        progress = if (currentTestType != 1L || isTestCompleted) 1f else 0f,
-                        animate = currentTestType == 1L && !isTestCompleted,
-                        durationMillis = (DOWNLOAD_TIMEOUT * 1000).toInt(),
-                        reset = !isTestCompleted && currentTestType == null,
-                        complete = isTestCompleted || currentTestType == 2L,
-                        color = Color.Blue,
-                        fromBottom = false,
-                        modifier =
-                            Modifier
-                                .width(4.dp)
-                                .height(60.dp)
-                                .align(Alignment.Center),
-                    )
-                }
-            }
-            Box(modifier = Modifier.width(100.dp).height(60.dp)) {
-                if (currentTestType == 1L || lastDownloadSpeed != null) {
-                    LinearChart(
-                        speeds = downloadSpeeds,
-                        lineColor = Color.Blue,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-            }
-        }
-
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            ) {
                 Text(
                     text = "JITTER",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp),
                 )
                 Text(
                     text = "${(progress.jitter ?: 0.0).roundToInt()}",
@@ -281,57 +221,148 @@ fun Speedometer(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                 )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            ) {
-                val isUploading = currentTestType == 2L && !isTestCompleted
                 Text(
-                    text = "UPLOAD",
-                    fontSize = if (isUploading) 17.sp else 12.sp,
+                    text = "PACKET LOSS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = "${(progress.packetLoss ?: 0.0).roundToInt()}",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${uploadSpeed.roundToInt()}",
-                    fontSize = if (isUploading) 30.sp else 20.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Mbps",
-                    fontSize = if (isUploading) 17.sp else 12.sp,
+                    text = "%",
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                 )
             }
-            Box(modifier = Modifier.width(20.dp)) {
-                if (currentTestType == 2L || lastUploadSpeed != null) {
-                    VerticalProgressIndicator(
-                        progress = if (isTestCompleted) 1f else 0f,
-                        animate = currentTestType == 2L && !isTestCompleted,
-                        durationMillis = (UPLOAD_TIMEOUT * 1000).toInt(),
-                        reset = !isTestCompleted && currentTestType == null,
-                        complete = isTestCompleted,
-                        color = Color.Red,
-                        fromBottom = true,
-                        modifier =
-                            Modifier
-                                .width(4.dp)
-                                .height(60.dp)
-                                .align(Alignment.Center),
-                    )
+
+            // Right column: Download and Upload
+            Column(
+                modifier = Modifier.weight(2f),
+            ) {
+                // Download section
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                    ) {
+                        val isDownloading = currentTestType == 1L && !isTestCompleted
+                        Text(
+                            text = "DOWNLOAD",
+                            fontSize = if (isDownloading) 17.sp else 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "${downloadSpeed.roundToInt()}",
+                            fontSize = if (isDownloading) 30.sp else 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Mbps",
+                            fontSize = if (isDownloading) 17.sp else 12.sp,
+                            fontWeight = FontWeight.Normal,
+                        )
+                    }
+                    Row {
+                        Box(modifier = Modifier.width(20.dp)) {
+                            if (currentTestType == 1L || lastDownloadSpeed != null) {
+                                VerticalProgressIndicator(
+                                    progress = if (currentTestType != 1L || isTestCompleted) 1f else 0f,
+                                    animate = currentTestType == 1L && !isTestCompleted,
+                                    durationMillis = (DOWNLOAD_TIMEOUT * 1000).toInt(),
+                                    reset = !isTestCompleted && currentTestType == null,
+                                    complete = isTestCompleted || currentTestType == 2L,
+                                    color = Color.Blue,
+                                    fromBottom = false,
+                                    modifier =
+                                        Modifier
+                                            .width(4.dp)
+                                            .height(60.dp)
+                                            .align(Alignment.Center),
+                                )
+                            }
+                        }
+                        Box(modifier = Modifier.width(100.dp).height(60.dp)) {
+                            if (currentTestType == 1L || lastDownloadSpeed != null) {
+                                LinearChart(
+                                    speeds = downloadSpeeds,
+                                    lineColor = Color.Blue,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
                 }
-            }
-            Box(modifier = Modifier.width(100.dp).height(60.dp)) {
-                if (currentTestType == 2L || lastUploadSpeed != null) {
-                    LinearChart(
-                        speeds = uploadSpeeds,
-                        lineColor = Color.Red,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+
+                // Upload section
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                    ) {
+                        val isUploading = currentTestType == 2L && !isTestCompleted
+                        Text(
+                            text = "UPLOAD",
+                            fontSize = if (isUploading) 17.sp else 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "${uploadSpeed.roundToInt()}",
+                            fontSize = if (isUploading) 30.sp else 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Mbps",
+                            fontSize = if (isUploading) 17.sp else 12.sp,
+                            fontWeight = FontWeight.Normal,
+                        )
+                    }
+                    Row {
+                        Box(modifier = Modifier.width(20.dp)) {
+                            if (currentTestType == 2L || lastUploadSpeed != null) {
+                                VerticalProgressIndicator(
+                                    progress = if (isTestCompleted) 1f else 0f,
+                                    animate = currentTestType == 2L && !isTestCompleted,
+                                    durationMillis = (UPLOAD_TIMEOUT * 1000).toInt(),
+                                    reset = !isTestCompleted && currentTestType == null,
+                                    complete = isTestCompleted,
+                                    color = Color.Red,
+                                    fromBottom = true,
+                                    modifier =
+                                        Modifier
+                                            .width(4.dp)
+                                            .height(60.dp)
+                                            .align(Alignment.Center),
+                                )
+                            }
+                        }
+                        Box(modifier = Modifier.width(100.dp).height(60.dp)) {
+                            if (currentTestType == 2L || lastUploadSpeed != null) {
+                                LinearChart(
+                                    speeds = uploadSpeeds,
+                                    lineColor = Color.Red,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
 
+        // Server details
         if (server != null) {
             Row(
                 modifier =

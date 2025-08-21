@@ -28,6 +28,7 @@ class TestResultStorageImpl(
         testLocationId: Long,
         ping: Double?,
         jitter: Double?,
+        packetLoss: Double?,
         testTimestamp: Long,
     ): Long {
         var id: Long = 0
@@ -43,6 +44,7 @@ class TestResultStorageImpl(
                 testLocationId = testLocationId,
                 ping = ping,
                 jitter = jitter,
+                packetLoss = packetLoss,
                 testTimestamp = testTimestamp,
             )
             id = database.netPulseDatabaseQueries.lastInsertRowId().executeAsOne()
@@ -70,6 +72,7 @@ class TestResultStorageImpl(
                         testLocationId = it.testLocationId,
                         ping = it.ping,
                         jitter = it.jitter,
+                        packetLoss = it.packetLoss,
                     )
                 }
             }
@@ -94,16 +97,18 @@ class TestResultStorageImpl(
                         testLocationId = it.testLocationId,
                         ping = it.ping,
                         jitter = it.jitter,
+                        packetLoss = it.packetLoss,
                     )
                 }
             }
 
-    override suspend fun updateTestSessionPingJitter(
+    override suspend fun updateTestSessionPingJitterPacketLoss(
         sessionId: Long,
         ping: Double,
         jitter: Double,
+        packetLoss: Double,
     ) {
-        database.netPulseDatabaseQueries.updateTestSessionPingJitter(ping, jitter, sessionId)
+        database.netPulseDatabaseQueries.updateTestSessionPingJitterPacketLoss(ping, jitter, packetLoss, sessionId)
     }
 
     override suspend fun insertTestResult(
@@ -145,6 +150,7 @@ class TestResultStorageImpl(
                         serverDistance = entity.serverDistance,
                         ping = entity.ping,
                         jitter = entity.jitter,
+                        packetLoss = entity.packetLoss,
                         testTimestamp = entity.testTimestamp,
                         testLocationId = entity.testLocationId,
                     )
@@ -167,4 +173,12 @@ class TestResultStorageImpl(
                     )
                 }
             }
+
+    override suspend fun deleteTestSession(sessionId: Long) {
+        database.netPulseDatabaseQueries.transaction {
+            database.netPulseDatabaseQueries.deleteTestResultsBySessionId(sessionId)
+            database.netPulseDatabaseQueries.deleteTestSession(sessionId)
+        }
+        logger.logDebug("TestResultStorageImpl", "Deleted sessionId=$sessionId and its results")
+    }
 }

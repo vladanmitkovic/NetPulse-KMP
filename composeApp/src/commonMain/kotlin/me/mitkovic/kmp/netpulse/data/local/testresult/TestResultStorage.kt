@@ -16,13 +16,15 @@ interface TestResultStorage {
         testLocationId: Long,
         ping: Double?,
         jitter: Double?,
+        packetLoss: Double?,
         testTimestamp: Long,
     ): Long
 
-    suspend fun updateTestSessionPingJitter(
+    suspend fun updateTestSessionPingJitterPacketLoss(
         sessionId: Long,
         ping: Double,
         jitter: Double,
+        packetLoss: Double,
     )
 
     fun getLatestTestSession(): Flow<TestSession?>
@@ -41,4 +43,6 @@ interface TestResultStorage {
     fun getTestSessions(): Flow<List<TestSession>>
 
     fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>>
+
+    suspend fun deleteTestSession(sessionId: Long)
 }
