@@ -9,7 +9,7 @@ import me.mitkovic.kmp.netpulse.logging.AppLogger
 
 class SettingsScreenViewModel(
     private val appRepository: AppRepository,
-    private val logger: AppLogger,
+    logger: AppLogger,
 ) : ViewModel() {
 
     init {
