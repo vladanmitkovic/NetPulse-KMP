@@ -1,5 +1,10 @@
 package me.mitkovic.kmp.netpulse.di
 
+import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.ktor.client.HttpClient
@@ -20,8 +25,12 @@ import me.mitkovic.kmp.netpulse.data.local.location.LocationStorage
 import me.mitkovic.kmp.netpulse.data.local.location.LocationStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorage
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorage
+import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorage
 import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.theme.ThemeDataStorage
+import me.mitkovic.kmp.netpulse.data.local.theme.ThemeDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.remote.RemoteService
 import me.mitkovic.kmp.netpulse.data.remote.RemoteServiceImpl
 import me.mitkovic.kmp.netpulse.logging.AppLogger
@@ -37,6 +46,12 @@ import java.util.concurrent.TimeUnit
 actual fun platformModule() =
     module {
         single<AppLogger> { AppLoggerImpl() }
+
+        single<DataStore<Preferences>> {
+            PreferenceDataStoreFactory.create(
+                produceFile = { get<Application>().preferencesDataStoreFile("user_preferences") },
+            )
+        }
 
         single<SqlDriver> {
             val context = androidContext()
@@ -74,11 +89,25 @@ actual fun platformModule() =
             LocationStorageImpl(database = get<NetPulseDatabase>())
         }
 
+        single<ThemeDataStorage> {
+            ThemeDataStorageImpl(
+                dataStore = get<DataStore<Preferences>>(),
+            )
+        }
+
+        single<SettingsDataStorage> {
+            SettingsDataStorageImpl(
+                dataStore = get<DataStore<Preferences>>(),
+            )
+        }
+
         single<LocalStorage> {
             LocalStorageImpl(
                 testResultStorage = get<TestResultStorage>(),
                 serverStorage = get<ServerStorage>(),
                 locationStorage = get<LocationStorage>(),
+                themeDataStorage = get<ThemeDataStorage>(),
+                settingsDataStorage = get<SettingsDataStorage>(),
             )
         }
 

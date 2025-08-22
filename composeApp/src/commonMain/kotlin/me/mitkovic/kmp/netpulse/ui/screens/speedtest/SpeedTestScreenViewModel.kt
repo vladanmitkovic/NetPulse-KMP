@@ -76,6 +76,7 @@ class SpeedTestScreenViewModel(
         }
     }
 
+    // SpeedTestScreenViewModel - startSpeedTest method
     fun startSpeedTest(server: Server) {
         speedTestJob =
             viewModelScope.launch {
