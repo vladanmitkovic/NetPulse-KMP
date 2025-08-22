@@ -19,14 +19,19 @@ import me.mitkovic.kmp.netpulse.data.local.location.LocationStorage
 import me.mitkovic.kmp.netpulse.data.local.location.LocationStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorage
 import me.mitkovic.kmp.netpulse.data.local.server.ServerStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorage
+import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorage
 import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.theme.ThemeDataStorage
+import me.mitkovic.kmp.netpulse.data.local.theme.ThemeDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.remote.RemoteService
 import me.mitkovic.kmp.netpulse.data.remote.RemoteServiceImpl
 import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.logging.AppLoggerImpl
 import nl.adaptivity.xmlutil.serialization.XML
 import org.koin.dsl.module
+import platform.Foundation.NSUserDefaults
 
 actual fun platformModule() =
     module {
@@ -61,11 +66,25 @@ actual fun platformModule() =
             LocationStorageImpl(database = get<NetPulseDatabase>())
         }
 
+        single<ThemeDataStorage> {
+            ThemeDataStorageImpl(
+                defaults = get<NSUserDefaults>(),
+            )
+        }
+
+        single<SettingsDataStorage> {
+            SettingsDataStorageImpl(
+                defaults = get<NSUserDefaults>(),
+            )
+        }
+
         single<LocalStorage> {
             LocalStorageImpl(
                 testResultStorage = get<TestResultStorage>(),
                 serverStorage = get<ServerStorage>(),
                 locationStorage = get<LocationStorage>(),
+                themeDataStorage = get<ThemeDataStorage>(),
+                settingsDataStorage = get<SettingsDataStorage>(),
             )
         }
 

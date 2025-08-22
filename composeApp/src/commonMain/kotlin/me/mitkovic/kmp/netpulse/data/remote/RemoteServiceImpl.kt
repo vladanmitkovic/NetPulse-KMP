@@ -199,7 +199,10 @@ class RemoteServiceImpl(
         return nearestServer
     }
 
-    override suspend fun measurePingAndJitter(server: Server): PingResult = pingServer(server, count = 10)
+    override suspend fun measurePingAndJitter(
+        server: Server,
+        count: Int,
+    ): PingResult = pingServer(server, count = 10)
 
     @OptIn(ExperimentalTime::class)
     private suspend fun downloadTest(
