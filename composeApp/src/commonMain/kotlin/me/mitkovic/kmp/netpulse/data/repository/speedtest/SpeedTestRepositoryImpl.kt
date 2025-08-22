@@ -10,6 +10,7 @@ import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.local.database.TestSession
+import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.model.toDomainModel
@@ -91,34 +92,7 @@ class SpeedTestRepositoryImpl(
             .fetchSpeedTestServers()
             .map { remoteResult ->
                 when (remoteResult) {
-                    is Resource.Success -> {
-                        logger.logError(
-                            tag = SpeedTestRepositoryImpl::class.simpleName,
-                            message = "refreshServers servers: ${remoteResult.data}",
-                            throwable = null,
-                        )
-                        val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
-                        val modifiedServers =
-                            remoteResult.data.servers.map { server ->
-                                val lat = server.attrs["lat"]?.toDouble() ?: 0.0
-                                val lon = server.attrs["lon"]?.toDouble() ?: 0.0
-                                val dist =
-                                    if (currentLocation != null) {
-                                        (haversineDistance(currentLocation.latitude, currentLocation.longitude, lat, lon) * 1000)
-                                    } else {
-                                        0.0
-                                    }
-                                DataServer(
-                                    attrs =
-                                        server.attrs.toMutableMap().apply {
-                                            put("distance", dist.toString())
-                                        },
-                                )
-                            }
-                        val modifiedResponse = DataServersResponse(servers = modifiedServers)
-                        localStorage.serverStorage.storeServers(response = modifiedResponse)
-                        Resource.Success(modifiedResponse.toDomainModel())
-                    }
+                    is Resource.Success -> processSuccessfulFetch(remoteResult.data)
                     is Resource.Error -> {
                         logger.logError(
                             tag = SpeedTestRepositoryImpl::class.simpleName,
@@ -138,15 +112,40 @@ class SpeedTestRepositoryImpl(
                 emit(Resource.Error(e.message ?: "Unknown error", e))
             }
 
-    override suspend fun findLowestLatencyServer(): Server? {
-        val servers =
-            localStorage.serverStorage
-                .retrieveServers()
-                .firstOrNull()
-                ?.toDomainModel()
-                ?.servers ?: return null.also {
-                logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
+    private suspend fun processSuccessfulFetch(remoteData: DataServersResponse?): Resource<ServersResponse?> {
+        if (remoteData == null) {
+            return Resource.Success(null)
+        }
+        logger.logError(
+            tag = SpeedTestRepositoryImpl::class.simpleName,
+            message = "refreshServers servers: $remoteData",
+            throwable = null,
+        )
+        val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+        val modifiedServers =
+            remoteData.servers.map { server ->
+                val lat = server.attrs["lat"]?.toDouble() ?: 0.0
+                val lon = server.attrs["lon"]?.toDouble() ?: 0.0
+                val dist =
+                    if (currentLocation != null) {
+                        (haversineDistance(currentLocation.latitude, currentLocation.longitude, lat, lon) * 1000)
+                    } else {
+                        0.0
+                    }
+                DataServer(
+                    attrs =
+                        server.attrs.toMutableMap().apply {
+                            put("distance", dist.toString())
+                        },
+                )
             }
+        val modifiedResponse = DataServersResponse(servers = modifiedServers)
+        localStorage.serverStorage.storeServers(response = modifiedResponse)
+        return Resource.Success(modifiedResponse.toDomainModel())
+    }
+
+    override suspend fun findLowestLatencyServer(): Server? {
+        val servers = getLocalServers() ?: return null
         return remoteService.findNearestServer(servers).also { server ->
             if (server == null) logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No nearest server found")
         }
@@ -156,63 +155,14 @@ class SpeedTestRepositoryImpl(
     override fun executeSpeedTest(server: Server): Flow<SpeedTestProgress> =
         flow {
             try {
-                val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
                 val timestamp = Clock.System.now().toEpochMilliseconds()
-
-                val effectiveLocation =
-                    currentLocation ?: UserLocation(
-                        ip = null,
-                        network = null,
-                        version = null,
-                        city = null,
-                        region = null,
-                        regionCode = null,
-                        country = null,
-                        countryName = null,
-                        countryCode = null,
-                        countryCodeIso3 = null,
-                        countryCapital = null,
-                        countryTld = null,
-                        continentCode = null,
-                        inEu = null,
-                        postal = null,
-                        latitude = 0.0,
-                        longitude = 0.0,
-                        timezone = null,
-                        utcOffset = null,
-                        countryCallingCode = null,
-                        currency = null,
-                        currencyName = null,
-                        languages = null,
-                        countryArea = null,
-                        countryPopulation = null,
-                        asn = null,
-                        org = null,
-                        timestamp = timestamp,
-                    )
-
+                val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
+                val effectiveLocation = currentLocation ?: UserLocation.default(timestamp)
                 val testLocationId = localStorage.locationStorage.getOrStoreTestLocation(effectiveLocation)
+                val sessionId = createTestSession(server, testLocationId, timestamp)
 
-                val sessionId =
-                    localStorage.testResultStorage.insertTestSession(
-                        serverId = server.id.toString(),
-                        serverUrl = server.url,
-                        serverName = server.name,
-                        serverCountry = server.country,
-                        serverSponsor = server.sponsor,
-                        serverHost = server.host,
-                        serverDistance = server.distance ?: 0.0,
-                        testLocationId = testLocationId,
-                        ping = null,
-                        jitter = null,
-                        packetLoss = null,
-                        testTimestamp = timestamp,
-                    )
-
-                val pingResult = remoteService.measurePingAndJitter(server)
-
+                val pingResult = performPingTest(server)
                 emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter, packetLoss = pingResult.packetLoss))
-
                 localStorage.testResultStorage.updateTestSessionPingJitterPacketLoss(
                     sessionId,
                     pingResult.averageLatency,
@@ -220,22 +170,14 @@ class SpeedTestRepositoryImpl(
                     pingResult.packetLoss,
                 )
 
-                val initialImageSize = "1000"
-
-                remoteService.downloadTestMultiThread(server, initialImageSize, Constants.DOWNLOAD_TIMEOUT) { speed ->
-                    if (speed >= 0) {
-                        emit(SpeedTestProgress(downloadSpeed = speed * 8))
-                        localStorage.testResultStorage.insertTestResult(sessionId, 1, speed * 8, Clock.System.now().toEpochMilliseconds())
-                    }
+                // Collect download progress from the flow
+                performDownloadTest(server, sessionId).collect { progress ->
+                    emit(progress)
                 }
 
-                val initialPayloadSize = 128 * 1024 // 128 KB
-
-                remoteService.uploadTestMultiThread(server, initialPayloadSize, Constants.UPLOAD_TIMEOUT) { speed ->
-                    if (speed >= 0) {
-                        emit(SpeedTestProgress(uploadSpeed = speed * 8))
-                        localStorage.testResultStorage.insertTestResult(sessionId, 2, speed * 8, Clock.System.now().toEpochMilliseconds())
-                    }
+                // Collect upload progress from the flow
+                performUploadTest(server, sessionId).collect { progress ->
+                    emit(progress)
                 }
 
                 emit(SpeedTestProgress(isCompleted = true))
@@ -244,15 +186,72 @@ class SpeedTestRepositoryImpl(
             }
         }
 
-    override suspend fun findClosestServerByDistance(): Server? {
-        val servers =
-            localStorage.serverStorage
-                .retrieveServers()
-                .firstOrNull()
-                ?.toDomainModel()
-                ?.servers ?: return null.also {
-                logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
+    private suspend fun createTestSession(
+        server: Server,
+        testLocationId: Long,
+        timestamp: Long,
+    ): Long =
+        localStorage.testResultStorage.insertTestSession(
+            serverId = server.id.toString(),
+            serverUrl = server.url,
+            serverName = server.name,
+            serverCountry = server.country,
+            serverSponsor = server.sponsor,
+            serverHost = server.host,
+            serverDistance = server.distance ?: 0.0,
+            testLocationId = testLocationId,
+            ping = null,
+            jitter = null,
+            packetLoss = null,
+            testTimestamp = timestamp,
+        )
+
+    private suspend fun performPingTest(server: Server): PingResult = remoteService.measurePingAndJitter(server)
+
+    @OptIn(ExperimentalTime::class)
+    private fun performDownloadTest(
+        server: Server,
+        sessionId: Long,
+    ): Flow<SpeedTestProgress> =
+        flow {
+            val initialImageSize = "1000"
+            remoteService.downloadTestMultiThread(server, initialImageSize, Constants.DOWNLOAD_TIMEOUT) { speed ->
+                if (speed >= 0) {
+                    val adjustedSpeed = speed * 8
+                    emit(SpeedTestProgress(downloadSpeed = adjustedSpeed))
+                    localStorage.testResultStorage.insertTestResult(
+                        sessionId,
+                        1,
+                        adjustedSpeed,
+                        Clock.System.now().toEpochMilliseconds(),
+                    )
+                }
             }
+        }
+
+    @OptIn(ExperimentalTime::class)
+    private fun performUploadTest(
+        server: Server,
+        sessionId: Long,
+    ): Flow<SpeedTestProgress> =
+        flow {
+            val initialPayloadSize = 128 * 1024 // 128 KB
+            remoteService.uploadTestMultiThread(server, initialPayloadSize, Constants.UPLOAD_TIMEOUT) { speed ->
+                if (speed >= 0) {
+                    val adjustedSpeed = speed * 8
+                    emit(SpeedTestProgress(uploadSpeed = adjustedSpeed))
+                    localStorage.testResultStorage.insertTestResult(
+                        sessionId,
+                        2,
+                        adjustedSpeed,
+                        Clock.System.now().toEpochMilliseconds(),
+                    )
+                }
+            }
+        }
+
+    override suspend fun findClosestServerByDistance(): Server? {
+        val servers = getLocalServers() ?: return null
         return servers
             .minByOrNull { it.distance ?: Double.MAX_VALUE }
             .also { server ->
@@ -261,15 +260,22 @@ class SpeedTestRepositoryImpl(
     }
 
     override suspend fun getSortedServersByDistance(): List<Server> {
+        val servers = getLocalServers() ?: return emptyList()
+        return servers.sortedBy { it.distance ?: Double.MAX_VALUE }
+    }
+
+    private suspend fun getLocalServers(): List<Server>? {
         val servers =
             localStorage.serverStorage
                 .retrieveServers()
                 .firstOrNull()
                 ?.toDomainModel()
-                ?.servers ?: return emptyList<Server>().also {
-                logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
-            }
-        return servers.sortedBy { it.distance ?: Double.MAX_VALUE }
+                ?.servers
+        if (servers.isNullOrEmpty()) {
+            logger.logDebug(SpeedTestRepositoryImpl::class.simpleName, "No servers available")
+            return null
+        }
+        return servers
     }
 
     override fun getTestSessions(): Flow<List<TestSession>> = localStorage.testResultStorage.getTestSessions()
