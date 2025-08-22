@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
 import me.mitkovic.kmp.netpulse.data.local.LocalStorage
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
@@ -15,6 +14,7 @@ import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.model.toDomainModel
 import me.mitkovic.kmp.netpulse.data.remote.RemoteService
+import me.mitkovic.kmp.netpulse.data.repository.settings.SettingsRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.domain.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.UserLocation
@@ -29,6 +29,7 @@ import me.mitkovic.kmp.netpulse.data.model.ServersResponse as DataServersRespons
 class SpeedTestRepositoryImpl(
     private val localStorage: LocalStorage,
     private val remoteService: RemoteService,
+    private val settingsRepository: SettingsRepository,
     private val logger: AppLogger,
 ) : SpeedTestRepository {
 
@@ -155,13 +156,16 @@ class SpeedTestRepositoryImpl(
     override fun executeSpeedTest(server: Server): Flow<SpeedTestProgress> =
         flow {
             try {
+                val testDuration = settingsRepository.getTestDuration().firstOrNull() ?: 10
+                val numPings = settingsRepository.getNumberOfPings().firstOrNull() ?: 10
+
                 val timestamp = Clock.System.now().toEpochMilliseconds()
                 val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
                 val effectiveLocation = currentLocation ?: UserLocation.default(timestamp)
                 val testLocationId = localStorage.locationStorage.getOrStoreTestLocation(effectiveLocation)
                 val sessionId = createTestSession(server, testLocationId, timestamp)
 
-                val pingResult = performPingTest(server)
+                val pingResult = performPingTest(server, numPings)
                 emit(SpeedTestProgress(ping = pingResult.averageLatency, jitter = pingResult.jitter, packetLoss = pingResult.packetLoss))
                 localStorage.testResultStorage.updateTestSessionPingJitterPacketLoss(
                     sessionId,
@@ -171,12 +175,12 @@ class SpeedTestRepositoryImpl(
                 )
 
                 // Collect download progress from the flow
-                performDownloadTest(server, sessionId).collect { progress ->
+                performDownloadTest(server, sessionId, testDuration).collect { progress ->
                     emit(progress)
                 }
 
                 // Collect upload progress from the flow
-                performUploadTest(server, sessionId).collect { progress ->
+                performUploadTest(server, sessionId, testDuration).collect { progress ->
                     emit(progress)
                 }
 
@@ -206,16 +210,20 @@ class SpeedTestRepositoryImpl(
             testTimestamp = timestamp,
         )
 
-    private suspend fun performPingTest(server: Server): PingResult = remoteService.measurePingAndJitter(server)
+    private suspend fun performPingTest(
+        server: Server,
+        count: Int = 10,
+    ): PingResult = remoteService.measurePingAndJitter(server, count)
 
     @OptIn(ExperimentalTime::class)
     private fun performDownloadTest(
         server: Server,
         sessionId: Long,
+        duration: Int,
     ): Flow<SpeedTestProgress> =
         flow {
             val initialImageSize = "1000"
-            remoteService.downloadTestMultiThread(server, initialImageSize, Constants.DOWNLOAD_TIMEOUT) { speed ->
+            remoteService.downloadTestMultiThread(server, initialImageSize, duration.toDouble()) { speed ->
                 if (speed >= 0) {
                     val adjustedSpeed = speed * 8
                     emit(SpeedTestProgress(downloadSpeed = adjustedSpeed))
@@ -233,10 +241,11 @@ class SpeedTestRepositoryImpl(
     private fun performUploadTest(
         server: Server,
         sessionId: Long,
+        duration: Int,
     ): Flow<SpeedTestProgress> =
         flow {
             val initialPayloadSize = 128 * 1024 // 128 KB
-            remoteService.uploadTestMultiThread(server, initialPayloadSize, Constants.UPLOAD_TIMEOUT) { speed ->
+            remoteService.uploadTestMultiThread(server, initialPayloadSize, duration.toDouble()) { speed ->
                 if (speed >= 0) {
                     val adjustedSpeed = speed * 8
                     emit(SpeedTestProgress(uploadSpeed = adjustedSpeed))

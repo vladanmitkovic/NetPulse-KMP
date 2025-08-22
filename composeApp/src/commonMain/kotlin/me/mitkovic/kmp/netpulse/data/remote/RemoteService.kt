@@ -14,7 +14,10 @@ interface RemoteService {
 
     suspend fun getUserLocation(): GeoIpResponse?
 
-    suspend fun measurePingAndJitter(server: Server): PingResult
+    suspend fun measurePingAndJitter(
+        server: Server,
+        count: Int,
+    ): PingResult
 
     suspend fun downloadTestMultiThread(
         server: Server,
