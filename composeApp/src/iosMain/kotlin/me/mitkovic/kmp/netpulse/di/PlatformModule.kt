@@ -38,6 +38,10 @@ actual fun platformModule() =
         // Logger
         single<AppLogger> { AppLoggerImpl() }
 
+        single<NSUserDefaults> {
+            NSUserDefaults.standardUserDefaults()
+        }
+
         single {
             NativeSqliteDriver(
                 schema = NetPulseDatabase.Schema,
