@@ -91,7 +91,7 @@ class SpeedTestScreenViewModel(
                         if (prog.error != null) _databaseUiState.value = DatabaseUiState.Error(prog.error)
                     }
                 } catch (e: CancellationException) {
-                    logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test cancelled")
+                    logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test cancelled: ${e.message}")
                 }
             }
     }
