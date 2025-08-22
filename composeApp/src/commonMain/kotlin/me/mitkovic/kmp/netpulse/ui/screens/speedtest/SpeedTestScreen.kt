@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,12 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
     val databaseUiStateValue by viewModel.databaseUiState.collectAsStateWithLifecycle()
     val state = databaseUiStateValue
     val progress by viewModel.progress.collectAsStateWithLifecycle()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopSpeedTest()
+        }
+    }
 
     Column(
         modifier =

@@ -29,4 +29,38 @@ data class UserLocation(
     val asn: String?,
     val org: String?,
     val timestamp: Long,
-)
+) {
+    companion object {
+        fun default(timestamp: Long) =
+            UserLocation(
+                ip = null,
+                network = null,
+                version = null,
+                city = null,
+                region = null,
+                regionCode = null,
+                country = null,
+                countryName = null,
+                countryCode = null,
+                countryCodeIso3 = null,
+                countryCapital = null,
+                countryTld = null,
+                continentCode = null,
+                inEu = null,
+                postal = null,
+                latitude = 0.0,
+                longitude = 0.0,
+                timezone = null,
+                utcOffset = null,
+                countryCallingCode = null,
+                currency = null,
+                currencyName = null,
+                languages = null,
+                countryArea = null,
+                countryPopulation = null,
+                asn = null,
+                org = null,
+                timestamp = timestamp,
+            )
+    }
+}

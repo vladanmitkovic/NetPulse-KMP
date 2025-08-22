@@ -18,8 +18,11 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.isActive
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.data.model.PingResult
@@ -31,6 +34,7 @@ import me.mitkovic.kmp.netpulse.util.calculateAverage
 import me.mitkovic.kmp.netpulse.util.calculateJitter
 import me.mitkovic.kmp.netpulse.util.calculatePacketLoss
 import nl.adaptivity.xmlutil.serialization.XML
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.DurationUnit
@@ -221,11 +225,15 @@ class RemoteServiceImpl(
                     val channel = response.bodyAsChannel()
                     val buffer = ByteArray(16384)
                     while (!channel.isClosedForRead) {
+                        currentCoroutineContext().ensureActive()
                         val bytesRead = channel.readAvailable(buffer, 0, buffer.size)
                         if (bytesRead == -1) break
                         totalBytes += bytesRead
                     }
                 }.toDouble(DurationUnit.SECONDS)
+            } catch (e: CancellationException) {
+                logger.logDebug(RemoteServiceImpl::class.simpleName, "Download cancelled: ${e.message}")
+                return -1.0
             } catch (e: Exception) {
                 logger.logError(RemoteServiceImpl::class.simpleName, "Download failed: ${e.message}", e)
                 return -1.0
@@ -259,7 +267,7 @@ class RemoteServiceImpl(
         val selectedSize = imageSizes.filter { it.second <= sizePerThread }.maxByOrNull { it.second }?.first ?: "1000" // Fallback
 
         val startTime = Clock.System.now().toEpochMilliseconds()
-        while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
+        while (isActive && Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
             val tasks = List(2) { async(Dispatchers.IO) { downloadTest(server, selectedSize) } }
             val speeds = tasks.awaitAll().filter { it >= 0 }
             val iterationSpeed = speeds.sum()
@@ -275,20 +283,28 @@ class RemoteServiceImpl(
         logger.logDebug(RemoteServiceImpl::class.simpleName, "Upload URL: $uploadUrl")
         val payload = ByteArray(payloadSize) { 0 }
         val duration =
-            measureTime {
-                val response =
-                    client.post(uploadUrl) {
-                        headers { append("Connection", "keep-alive") }
-                        setBody(ByteArrayContent(payload, ContentType.Application.OctetStream))
+            try {
+                measureTime {
+                    val response =
+                        client.post(uploadUrl) {
+                            headers { append("Connection", "keep-alive") }
+                            setBody(ByteArrayContent(payload, ContentType.Application.OctetStream))
+                        }
+                    logger.logDebug(
+                        RemoteServiceImpl::class.simpleName,
+                        "Response headers: ${response.headers.entries().joinToString { "${it.key}: ${it.value.joinToString()}" }}",
+                    )
+                    if (response.status.value !in 200..299) {
+                        throw Exception("Upload failed with status: ${response.status}")
                     }
-                logger.logDebug(
-                    RemoteServiceImpl::class.simpleName,
-                    "Response headers: ${response.headers.entries().joinToString { "${it.key}: ${it.value.joinToString()}" }}",
-                )
-                if (response.status.value !in 200..299) {
-                    throw Exception("Upload failed with status: ${response.status}")
-                }
-            }.toDouble(DurationUnit.SECONDS)
+                }.toDouble(DurationUnit.SECONDS)
+            } catch (e: CancellationException) {
+                logger.logDebug(RemoteServiceImpl::class.simpleName, "Upload cancelled: ${e.message}")
+                return -1.0
+            } catch (e: Exception) {
+                logger.logError(RemoteServiceImpl::class.simpleName, "Upload failed: ${e.message}", e)
+                return -1.0
+            }
         val sizeInMB = payload.size / (1024.0 * 1024.0)
         val speed = if (duration > 0) sizeInMB / duration else -1.0
         logger.logDebug(
@@ -318,7 +334,7 @@ class RemoteServiceImpl(
         val sizePerThread = totalSizeInBytes / 2
 
         val startTime = Clock.System.now().toEpochMilliseconds()
-        while (Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
+        while (isActive && Clock.System.now().toEpochMilliseconds() - startTime < timeout * 1000) {
             val tasks = List(2) { async(Dispatchers.IO) { uploadTest(server, sizePerThread) } }
             val speeds = tasks.awaitAll().filter { it >= 0 }
             val iterationSpeed = speeds.sum()
