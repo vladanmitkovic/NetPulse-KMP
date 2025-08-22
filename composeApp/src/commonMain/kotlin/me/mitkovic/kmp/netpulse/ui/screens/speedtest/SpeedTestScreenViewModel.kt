@@ -2,6 +2,7 @@ package me.mitkovic.kmp.netpulse.ui.screens.speedtest
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,6 +11,7 @@ import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
 import me.mitkovic.kmp.netpulse.data.repository.AppRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.AppLogger
+import kotlin.coroutines.cancellation.CancellationException
 
 sealed class ServerUiState {
     object Loading : ServerUiState()
@@ -40,6 +42,7 @@ class SpeedTestScreenViewModel(
 ) : ViewModel() {
 
     private var hasRunSpeedTest = false
+    private var speedTestJob: Job? = null
 
     private val _databaseUiState = MutableStateFlow<DatabaseUiState>(DatabaseUiState.Loading)
     val databaseUiState: StateFlow<DatabaseUiState> = _databaseUiState.asStateFlow()
@@ -74,18 +77,34 @@ class SpeedTestScreenViewModel(
     }
 
     fun startSpeedTest(server: Server) {
-        viewModelScope.launch {
-            _databaseUiState.value = DatabaseUiState.Loading
-            appRepository.speedTestRepository.executeSpeedTest(server).collect { prog ->
-                if (prog.ping != null) _progress.value = _progress.value.copy(ping = prog.ping)
-                if (prog.jitter != null) _progress.value = _progress.value.copy(jitter = prog.jitter)
-                if (prog.packetLoss != null) _progress.value = _progress.value.copy(packetLoss = prog.packetLoss)
-                if (prog.downloadSpeed != null) _progress.value = _progress.value.copy(downloadSpeed = prog.downloadSpeed)
-                if (prog.uploadSpeed != null) _progress.value = _progress.value.copy(uploadSpeed = prog.uploadSpeed)
-                if (prog.isCompleted) _databaseUiState.value = DatabaseUiState.Completed
-                if (prog.error != null) _databaseUiState.value = DatabaseUiState.Error(prog.error)
+        speedTestJob =
+            viewModelScope.launch {
+                _databaseUiState.value = DatabaseUiState.Loading
+                try {
+                    appRepository.speedTestRepository.executeSpeedTest(server).collect { prog ->
+                        if (prog.ping != null) _progress.value = _progress.value.copy(ping = prog.ping)
+                        if (prog.jitter != null) _progress.value = _progress.value.copy(jitter = prog.jitter)
+                        if (prog.packetLoss != null) _progress.value = _progress.value.copy(packetLoss = prog.packetLoss)
+                        if (prog.downloadSpeed != null) _progress.value = _progress.value.copy(downloadSpeed = prog.downloadSpeed)
+                        if (prog.uploadSpeed != null) _progress.value = _progress.value.copy(uploadSpeed = prog.uploadSpeed)
+                        if (prog.isCompleted) _databaseUiState.value = DatabaseUiState.Completed
+                        if (prog.error != null) _databaseUiState.value = DatabaseUiState.Error(prog.error)
+                    }
+                } catch (e: CancellationException) {
+                    logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test cancelled: ${e.message}")
+                }
             }
-        }
+    }
+
+    fun stopSpeedTest() {
+        speedTestJob?.cancel()
+        logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test cancelled")
+        reset()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        speedTestJob?.cancel()
     }
 
     fun reset() {
