@@ -1,5 +1,6 @@
 package me.mitkovic.kmp.netpulse.ui.screens.speedtest
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,7 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontWeight.Companion.Bold
+import androidx.compose.ui.text.font.FontWeight.Companion.Normal
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,39 +51,38 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
     val databaseUiStateValue by viewModel.databaseUiState.collectAsStateWithLifecycle()
     val state = databaseUiStateValue
     val progress by viewModel.progress.collectAsStateWithLifecycle()
-
     DisposableEffect(Unit) {
         onDispose {
             viewModel.stopSpeedTest()
         }
     }
-
     Column(
         modifier =
             Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background), // 60% dominant
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
         when (serverStateValue) {
             is ServerUiState.Loading -> {
-                Text("Loading server...", modifier = Modifier.padding(16.dp))
+                Text("Loading server...", modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onBackground)
             }
             is ServerUiState.Success -> {
                 if (serverStateValue.server == null) {
-                    Text("Server not found")
+                    Text("Server not found", color = MaterialTheme.colorScheme.onBackground)
                 }
             }
             is ServerUiState.Error -> {
                 Text(
                     text = "Error: ${serverStateValue.error}",
                     modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.secondary, // 10% accent for error
                 )
             }
         }
-
         if (state is DatabaseUiState.Error) {
-            Text("Result Error: ${state.error}", modifier = Modifier.padding(top = 8.dp))
+            Text("Result Error: ${state.error}", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.secondary)
         } else {
             Speedometer(
                 progress = progress,
@@ -110,7 +115,6 @@ fun Speedometer(
     var previousTestType by remember { mutableStateOf<Long?>(null) }
     var downloadSpeeds by remember { mutableStateOf(listOf<Float>()) }
     var uploadSpeeds by remember { mutableStateOf(listOf<Float>()) }
-
     LaunchedEffect(progress.downloadSpeed) {
         if (progress.downloadSpeed != null && progress.downloadSpeed.toFloat() != lastDownloadSpeed) {
             val speed = progress.downloadSpeed.toFloat()
@@ -123,7 +127,6 @@ fun Speedometer(
             currentTestType = 1L
         }
     }
-
     LaunchedEffect(progress.uploadSpeed) {
         if (progress.uploadSpeed != null && progress.uploadSpeed.toFloat() != lastUploadSpeed) {
             val speed = progress.uploadSpeed.toFloat()
@@ -136,14 +139,12 @@ fun Speedometer(
             currentTestType = 2L
         }
     }
-
     val downloadSpeed = lastDownloadSpeed ?: 0f
     val uploadSpeed = lastUploadSpeed ?: 0f
     val maxSpeed = 1000f
     val speed = if (currentTestType == 1L) downloadSpeed else uploadSpeed
     val angle = (speed / maxSpeed) * 180f
-    val color = if (currentTestType == 1L) Color.Blue else Color.Red
-
+    val color = if (currentTestType == 1L) Color(0xFFFFEB3B) else Color(0xFFFFEB3B) // Yellow for gauges/charts
     LaunchedEffect(isTestCompleted) {
         if (!isTestCompleted) {
             lastDownloadSpeed = null
@@ -154,7 +155,6 @@ fun Speedometer(
             uploadSpeeds = emptyList()
         }
     }
-
     Column(
         modifier =
             Modifier
@@ -173,7 +173,7 @@ fun Speedometer(
                     angle = angle,
                     width = 300,
                     height = 200,
-                    arcColor = color,
+                    arcColor = color, // Yellow
                     modifier = Modifier,
                 )
             } else {
@@ -181,12 +181,16 @@ fun Speedometer(
                     onClick = onRetest,
                     shape = CircleShape,
                     modifier = Modifier.size(200.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 ) {
-                    Text("Again")
+                    Text(
+                        text = "Again",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
                 }
             }
         }
-
         // Two columns: left for Ping/Jitter/PacketLoss, right for Download/Upload
         Row(
             modifier =
@@ -203,52 +207,60 @@ fun Speedometer(
                 Text(
                     text = "PING",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
+                    color = MaterialTheme.colorScheme.onBackground, // On 60%
                 )
                 Text(
                     text = "${(progress.ping ?: 0.0).roundToInt()}",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
+                    color = MaterialTheme.colorScheme.onBackground, // Changed to onBackground
                 )
                 Text(
                     text = "ms",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = Normal,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "JITTER",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
                     modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "${(progress.jitter ?: 0.0).roundToInt()}",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
+                    color = MaterialTheme.colorScheme.onBackground, // Changed to onBackground
                 )
                 Text(
                     text = "ms",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = Normal,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "PACKET LOSS",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
                     modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "${(progress.packetLoss ?: 0.0).roundToInt()}",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
+                    color = MaterialTheme.colorScheme.onBackground, // Changed to onBackground
                 )
                 Text(
                     text = "%",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = Normal,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
             }
-
             // Right column: Download and Upload
             Column(
                 modifier = Modifier.weight(2f),
@@ -266,17 +278,20 @@ fun Speedometer(
                         Text(
                             text = "DOWNLOAD",
                             fontSize = if (isDownloading) 17.sp else 12.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = "${downloadSpeed.roundToInt()}",
                             fontSize = if (isDownloading) 30.sp else 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = Bold,
+                            color = MaterialTheme.colorScheme.onBackground, // Changed to onBackground
                         )
                         Text(
                             text = "Mbps",
                             fontSize = if (isDownloading) 17.sp else 12.sp,
-                            fontWeight = FontWeight.Normal,
+                            fontWeight = Normal,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
                     Row {
@@ -288,7 +303,7 @@ fun Speedometer(
                                     durationMillis = (DOWNLOAD_TIMEOUT * 1000).toInt(),
                                     reset = !isTestCompleted && currentTestType == null,
                                     complete = isTestCompleted || currentTestType == 2L,
-                                    color = Color.Blue,
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     fromBottom = false,
                                     modifier =
                                         Modifier
@@ -302,14 +317,13 @@ fun Speedometer(
                             if (currentTestType == 1L || lastDownloadSpeed != null) {
                                 LinearChart(
                                     speeds = downloadSpeeds,
-                                    lineColor = Color.Blue,
+                                    lineColor = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
                         }
                     }
                 }
-
                 // Upload section
                 Row(
                     modifier =
@@ -326,17 +340,20 @@ fun Speedometer(
                         Text(
                             text = "UPLOAD",
                             fontSize = if (isUploading) 17.sp else 12.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = "${uploadSpeed.roundToInt()}",
                             fontSize = if (isUploading) 30.sp else 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = "Mbps",
                             fontSize = if (isUploading) 17.sp else 12.sp,
-                            fontWeight = FontWeight.Normal,
+                            fontWeight = Normal,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
                     Row {
@@ -348,7 +365,7 @@ fun Speedometer(
                                     durationMillis = (UPLOAD_TIMEOUT * 1000).toInt(),
                                     reset = !isTestCompleted && currentTestType == null,
                                     complete = isTestCompleted,
-                                    color = Color.Red,
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     fromBottom = true,
                                     modifier =
                                         Modifier
@@ -362,7 +379,7 @@ fun Speedometer(
                             if (currentTestType == 2L || lastUploadSpeed != null) {
                                 LinearChart(
                                     speeds = uploadSpeeds,
-                                    lineColor = Color.Red,
+                                    lineColor = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -371,35 +388,42 @@ fun Speedometer(
                 }
             }
         }
-
         // Server details
         if (server != null) {
-            Row(
+            Card(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary),
             ) {
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.Start,
                 ) {
                     Text(
                         text = "Country: ${server.country}",
-                        fontSize = 12.sp,
+                        fontWeight = Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Name: ${server.name}",
-                        fontSize = 12.sp,
+                        fontWeight = Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Sponsor: ${server.sponsor}",
-                        fontSize = 12.sp,
+                        fontWeight = Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Distance: ${server.distance?.let { (it / 1000).roundToInt() } ?: "N/A"} km",
-                        fontSize = 12.sp,
+                        fontWeight = Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.primary, // 10% accent for key value
                     )
                 }
             }

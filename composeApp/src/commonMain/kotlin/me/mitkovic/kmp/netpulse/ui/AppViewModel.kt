@@ -2,6 +2,8 @@ package me.mitkovic.kmp.netpulse.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.model.Resource
@@ -40,6 +42,28 @@ class AppViewModel(
                     }
                 }
         }
+    }
+
+    val theme =
+        appRepository
+            .themeRepository
+            .getTheme()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = null, // No default theme until loaded
+            )
+
+    fun updateTheme(isDarkMode: Boolean) {
+        viewModelScope.launch {
+            appRepository
+                .themeRepository
+                .saveTheme(isDarkMode)
+        }
+    }
+
+    fun toggleTheme() {
+        theme.value?.let { updateTheme(!it) }
     }
 
     fun logMessage(
