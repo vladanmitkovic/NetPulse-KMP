@@ -9,19 +9,25 @@ import me.mitkovic.kmp.netpulse.platform.UpdateStatusBarAppearance
 val DarkColorScheme =
     darkColorScheme(
         primary = DarkPrimary,
+        onPrimary = DarkOnPrimary,
         secondary = DarkSecondary,
-        tertiary = DarkTertiary,
         background = DarkBackground,
         onBackground = DarkOnBackground,
+        surface = DarkSurface,
+        onSurface = DarkOnSurface,
+        tertiary = DarkAccent,
     )
 
 val LightColorScheme =
     lightColorScheme(
         primary = LightPrimary,
+        onPrimary = LightOnPrimary,
         secondary = LightSecondary,
-        tertiary = LightTertiary,
         background = LightBackground,
         onBackground = LightOnBackground,
+        surface = LightSurface,
+        onSurface = LightOnSurface,
+        tertiary = LightAccent,
     )
 
 @Composable

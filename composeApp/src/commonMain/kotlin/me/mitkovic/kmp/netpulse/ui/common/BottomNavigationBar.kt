@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import me.mitkovic.kmp.netpulse.ui.navigation.BottomNavigation
 import me.mitkovic.kmp.netpulse.ui.navigation.Screen
@@ -23,7 +22,6 @@ fun BottomNavigationBar(navController: NavController) {
 
     BottomAppBar(
         containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         BottomNavigation.entries.forEach { navigationItem ->
             val isSelected =
@@ -37,17 +35,23 @@ fun BottomNavigationBar(navController: NavController) {
 
             NavigationBarItem(
                 selected = isSelected,
-                label = { Text(stringResource(navigationItem.label)) },
+                label = {
+                    Text(
+                        stringResource(navigationItem.label),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                },
                 icon = {
                     Icon(
                         painter = painterResource(navigationItem.icon),
                         contentDescription = stringResource(navigationItem.label),
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 },
                 onClick = {
                     if (currentDestination?.hasRoute(navigationItem.route::class) != true) {
                         navController.navigate(navigationItem.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo<Screen.Home> {
                                 saveState = true
                             }
                             launchSingleTop = true

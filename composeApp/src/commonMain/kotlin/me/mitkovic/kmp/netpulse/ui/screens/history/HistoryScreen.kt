@@ -1,5 +1,6 @@
 package me.mitkovic.kmp.netpulse.ui.screens.history
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -25,7 +27,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.TimeZone
@@ -42,19 +43,18 @@ import kotlin.time.Instant
 fun HistoryScreen(viewModel: HistoryScreenViewModel) {
     val history by viewModel.history.collectAsState(initial = emptyList())
     val logger: AppLogger = koinInject()
-
     if (history.isEmpty()) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "No speed tests performed yet.")
+            Text(text = "No speed tests performed yet.", color = MaterialTheme.colorScheme.onBackground)
         }
     } else {
         logger.logDebug("HistoryScreen", "Displaying ${history.size} test sessions")
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(16.dp),
         ) {
             items(history) { item ->
@@ -79,6 +79,10 @@ fun TestHistoryItem(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+            ),
     ) {
         Column(
             modifier =
@@ -104,6 +108,7 @@ fun TestHistoryItem(
                     Text(
                         text = "${item.serverName}, ${item.serverCountry}",
                         style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     Text(
@@ -123,35 +128,35 @@ fun TestHistoryItem(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
             }
-
             // Metrics Section
-            Row(
+            Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Column 1: Ping, Jitter, Packet Loss (33% width)
-                Column(
-                    modifier = Modifier.weight(0.33f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                // Row for Ping, Jitter, Packet Loss
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     MetricItem(label = "Ping", value = item.ping?.roundToInt() ?: "N/A", unit = "ms")
                     MetricItem(label = "Jitter", value = item.jitter?.roundToInt() ?: "N/A", unit = "ms")
                     MetricItem(label = "Packet Loss", value = item.packetLoss?.roundToInt() ?: "N/A", unit = "%")
                 }
-
-                // Column 2: Download and Upload text (43% width)
-                Column(
-                    modifier = Modifier.weight(0.43f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                // Download part
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Download Text
                     Column {
                         Text(
                             text = "DOWNLOAD",
@@ -166,7 +171,28 @@ fun TestHistoryItem(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    // Upload Text
+                    Box(
+                        modifier =
+                            Modifier
+                                .width(100.dp)
+                                .height(40.dp),
+                    ) {
+                        LinearChart(
+                            speeds = item.downloadSpeeds,
+                            lineColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+                // Upload part
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column {
                         Text(
                             text = "UPLOAD",
@@ -181,36 +207,15 @@ fun TestHistoryItem(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
-                }
-
-                // Column 3: Line Charts (23% width)
-                Column(
-                    modifier = Modifier.weight(0.23f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Download Chart
                     Box(
                         modifier =
                             Modifier
-                                .fillMaxWidth()
-                                .height(40.dp),
-                    ) {
-                        LinearChart(
-                            speeds = item.downloadSpeeds,
-                            lineColor = Color.Blue,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                    // Upload Chart
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
+                                .width(100.dp)
                                 .height(40.dp),
                     ) {
                         LinearChart(
                             speeds = item.uploadSpeeds,
-                            lineColor = Color.Red,
+                            lineColor = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -236,7 +241,7 @@ private fun MetricItem(
         Text(
             text = "$value $unit",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
