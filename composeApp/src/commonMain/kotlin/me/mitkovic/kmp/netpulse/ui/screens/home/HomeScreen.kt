@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,10 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
+import androidx.compose.ui.text.font.FontWeight.Companion.Normal
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +52,7 @@ fun HomeScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
     ) {
         when (nearestServerByLocationState) {
             is NearestServerByLocationUiState.Success -> {
@@ -79,7 +83,8 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = 32.dp)
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
                                 .clip(RoundedCornerShape(16.dp)),
                     ) {
                         TextField(
@@ -110,6 +115,7 @@ fun HomeScreen(
                             textStyle = MaterialTheme.typography.labelSmall,
                             modifier =
                                 Modifier
+                                    .fillMaxWidth()
                                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                     .background(MaterialTheme.colorScheme.secondary),
                         )
@@ -118,33 +124,39 @@ fun HomeScreen(
                             onDismissRequest = { expanded = false },
                             modifier = Modifier.background(MaterialTheme.colorScheme.secondary),
                         ) {
-                            sortedServers.forEach { server ->
+                            sortedServers.forEach { serverUi ->
                                 DropdownMenuItem(
                                     text = {
                                         Column(modifier = Modifier.padding(bottom = 16.dp)) {
                                             Column(modifier = Modifier.padding(bottom = 16.dp)) {
                                                 Text(
-                                                    text = server.sponsor,
+                                                    text = serverUi.sponsor,
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = Bold,
                                                     color = MaterialTheme.colorScheme.onBackground,
                                                 )
                                                 Text(
-                                                    text = "${server.name} • ${server.country}",
+                                                    text =
+                                                        buildAnnotatedString {
+                                                            append(serverUi.locationText)
+                                                            withStyle(
+                                                                style =
+                                                                    SpanStyle(
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                        fontWeight = Normal,
+                                                                    ),
+                                                            ) {
+                                                                append(serverUi.formattedDistance)
+                                                            }
+                                                        },
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = MaterialTheme.colorScheme.onBackground,
-                                                )
-                                                Text(
-                                                    text = "${server.distance?.let { (it / 1000).roundToInt() } ?: "N/A"} km",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = Bold,
-                                                    color = MaterialTheme.colorScheme.primary,
                                                 )
                                             }
                                         }
                                     },
                                     onClick = {
-                                        viewModel.selectServer(server)
+                                        viewModel.selectServer(serverUi.id)
                                         expanded = false
                                     },
                                 )
@@ -155,7 +167,7 @@ fun HomeScreen(
             }
             is NearestServerByLocationUiState.Error -> {
                 Text(
-                    text = "Error (Location): ${nearestServerByLocationState.error}",
+                    text = nearestServerByLocationState.errorText,
                     modifier =
                         Modifier
                             .align(Alignment.TopCenter)

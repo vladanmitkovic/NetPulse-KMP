@@ -11,7 +11,7 @@ import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 
 open class ServerStorageImpl(
     private val database: NetPulseDatabase,
-) : ServerStorage {
+) : IServerStorage {
 
     override suspend fun storeServers(response: ServersResponse) {
         database.netPulseDatabaseQueries.transaction {

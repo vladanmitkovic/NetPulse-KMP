@@ -6,32 +6,33 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.common.Constants.SOMETHING_WENT_WRONG
-import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.local.ILocalStorage
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.local.database.TestSession
+import me.mitkovic.kmp.netpulse.data.mapper.toDomainModel
 import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
-import me.mitkovic.kmp.netpulse.data.model.toDomainModel
-import me.mitkovic.kmp.netpulse.data.remote.RemoteService
-import me.mitkovic.kmp.netpulse.data.repository.settings.SettingsRepository
+import me.mitkovic.kmp.netpulse.data.remote.IRemoteService
+import me.mitkovic.kmp.netpulse.data.repository.settings.ISettingsRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.domain.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.UserLocation
-import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestRepository
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.domain.repository.ISpeedTestRepository
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import me.mitkovic.kmp.netpulse.util.haversineDistance
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import me.mitkovic.kmp.netpulse.data.model.Server as DataServer
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse as DataServersResponse
 
+@OptIn(ExperimentalTime::class)
 class SpeedTestRepositoryImpl(
-    private val localStorage: LocalStorage,
-    private val remoteService: RemoteService,
-    private val settingsRepository: SettingsRepository,
-    private val logger: AppLogger,
-) : SpeedTestRepository {
+    private val localStorage: ILocalStorage,
+    private val remoteService: IRemoteService,
+    private val settingsRepository: ISettingsRepository,
+    private val logger: IAppLogger,
+) : ISpeedTestRepository {
 
     override fun getServers(): Flow<Resource<ServersResponse?>> =
         localStorage.serverStorage
@@ -51,7 +52,7 @@ class SpeedTestRepositoryImpl(
                         message = "Error fetching local servers: ${e.message}",
                         throwable = e,
                     )
-                    emit(Resource.Error(e.message ?: "Unknown error", e))
+                    emit(Resource.Error(e.message ?: "Unknown error", exception = e))
                 }
             }
 
@@ -68,7 +69,6 @@ class SpeedTestRepositoryImpl(
             null
         }
 
-    @OptIn(ExperimentalTime::class)
     override suspend fun fetchAndSaveUserLocation(): UserLocation? {
         try {
             localStorage.locationStorage.clearCurrentLocation()
@@ -97,12 +97,12 @@ class SpeedTestRepositoryImpl(
                     is Resource.Error -> {
                         logger.logError(
                             tag = SpeedTestRepositoryImpl::class.simpleName,
-                            message = "Remote error: ${remoteResult.throwable?.message}",
-                            throwable = remoteResult.throwable,
+                            message = "Remote error: ${remoteResult.exception?.message}",
+                            throwable = remoteResult.exception,
                         )
-                        Resource.Error(remoteResult.throwable?.message ?: "Unknown error", remoteResult.throwable)
+                        Resource.Error(remoteResult.exception?.message ?: "Unknown error", exception = remoteResult.exception)
                     }
-                    is Resource.Loading -> Resource.Loading
+                    is Resource.Loading -> Resource.Loading()
                 }
             }.catch { e ->
                 logger.logError(
@@ -110,17 +110,16 @@ class SpeedTestRepositoryImpl(
                     message = "Error refreshing servers: ${e.message}",
                     throwable = e,
                 )
-                emit(Resource.Error(e.message ?: "Unknown error", e))
+                emit(Resource.Error(e.message ?: "Unknown error", exception = e))
             }
 
     private suspend fun processSuccessfulFetch(remoteData: DataServersResponse?): Resource<ServersResponse?> {
         if (remoteData == null) {
             return Resource.Success(null)
         }
-        logger.logError(
+        logger.logDebug(
             tag = SpeedTestRepositoryImpl::class.simpleName,
             message = "refreshServers servers: $remoteData",
-            throwable = null,
         )
         val currentLocation = localStorage.locationStorage.retrieveCurrentLocation().firstOrNull()
         val modifiedServers =
@@ -152,7 +151,6 @@ class SpeedTestRepositoryImpl(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     override fun executeSpeedTest(server: Server): Flow<SpeedTestProgress> =
         flow {
             try {
@@ -185,7 +183,18 @@ class SpeedTestRepositoryImpl(
                 }
 
                 emit(SpeedTestProgress(isCompleted = true))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                logger.logDebug(
+                    SpeedTestRepositoryImpl::class.simpleName,
+                    "Speed test cancelled: ${e.message}",
+                )
+                throw e
             } catch (e: Exception) {
+                logger.logError(
+                    SpeedTestRepositoryImpl::class.simpleName,
+                    "Speed test failed: ${e.message}",
+                    e,
+                )
                 emit(SpeedTestProgress(error = e.message ?: SOMETHING_WENT_WRONG))
             }
         }

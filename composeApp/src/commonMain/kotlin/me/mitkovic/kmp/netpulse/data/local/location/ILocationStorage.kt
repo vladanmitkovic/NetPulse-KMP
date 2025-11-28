@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
-interface LocationStorage {
+interface ILocationStorage {
     suspend fun storeCurrentLocation(
         response: GeoIpResponse,
         timestamp: Long,

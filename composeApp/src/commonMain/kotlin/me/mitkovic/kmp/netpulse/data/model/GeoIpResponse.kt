@@ -2,7 +2,6 @@ package me.mitkovic.kmp.netpulse.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
 @Serializable
 data class GeoIpResponse(
@@ -36,35 +35,3 @@ data class GeoIpResponse(
     @SerialName("error") val error: Boolean? = null,
     @SerialName("reason") val reason: String? = null,
 )
-
-fun GeoIpResponse.toDomainModel(timestamp: Long): UserLocation =
-    UserLocation(
-        ip = ip,
-        network = network,
-        version = version,
-        city = city,
-        region = region,
-        regionCode = regionCode,
-        country = country,
-        countryName = countryName,
-        countryCode = countryCode,
-        countryCodeIso3 = countryCodeIso3,
-        countryCapital = countryCapital,
-        countryTld = countryTld,
-        continentCode = continentCode,
-        inEu = inEu,
-        postal = postal,
-        latitude = latitude,
-        longitude = longitude,
-        timezone = timezone,
-        utcOffset = utcOffset,
-        countryCallingCode = countryCallingCode,
-        currency = currency,
-        currencyName = currencyName,
-        languages = languages,
-        countryArea = countryArea,
-        countryPopulation = countryPopulation,
-        asn = asn,
-        org = org,
-        timestamp = timestamp,
-    )

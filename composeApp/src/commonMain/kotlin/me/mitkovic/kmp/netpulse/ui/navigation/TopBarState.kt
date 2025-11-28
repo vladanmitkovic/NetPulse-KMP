@@ -29,9 +29,9 @@ fun NavController.currentTopBarState(): TopBarState {
         title =
             when {
                 isHome -> stringResource(Res.string.app_name)
-                currentDestination?.hasRoute(Screen.SpeedTest::class) == true -> stringResource(Res.string.speed_test)
-                currentDestination?.hasRoute(Screen.History::class) == true -> stringResource(Res.string.history)
-                currentDestination?.hasRoute(Screen.Settings::class) == true -> stringResource(Res.string.settings)
+                currentDestination.hasRoute(Screen.SpeedTest::class) == true -> stringResource(Res.string.speed_test)
+                currentDestination.hasRoute(Screen.History::class) == true -> stringResource(Res.string.history)
+                currentDestination.hasRoute(Screen.Settings::class) == true -> stringResource(Res.string.settings)
                 else -> ""
             },
         showActions = isHome,

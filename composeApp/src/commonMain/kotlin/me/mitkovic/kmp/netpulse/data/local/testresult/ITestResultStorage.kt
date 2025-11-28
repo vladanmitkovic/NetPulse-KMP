@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.local.database.TestSession
 
-interface TestResultStorage {
+interface ITestResultStorage {
     suspend fun insertTestSession(
         serverId: String,
         serverUrl: String,

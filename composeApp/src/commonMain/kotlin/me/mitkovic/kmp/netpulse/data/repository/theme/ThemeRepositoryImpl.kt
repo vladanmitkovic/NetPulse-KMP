@@ -1,14 +1,14 @@
 package me.mitkovic.kmp.netpulse.data.repository.theme
 
 import kotlinx.coroutines.flow.Flow
-import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.local.ILocalStorage
 
 class ThemeRepositoryImpl(
-    private val localStorage: LocalStorage,
-) : ThemeRepository {
+    private val localStorage: ILocalStorage,
+) : IThemeRepository {
 
-    override suspend fun saveTheme(isDarkMode: Boolean) {
-        localStorage.themeDataStorage.saveTheme(isDarkMode)
+    override suspend fun saveTheme(isLightMode: Boolean) {
+        localStorage.themeDataStorage.saveTheme(isLightMode = isLightMode)
     }
 
     override fun getTheme(): Flow<Boolean> = localStorage.themeDataStorage.getTheme()

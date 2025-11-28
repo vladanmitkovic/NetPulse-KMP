@@ -3,7 +3,7 @@ package me.mitkovic.kmp.netpulse.data.local.server
 import kotlinx.coroutines.flow.Flow
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 
-interface ServerStorage {
+interface IServerStorage {
     suspend fun storeServers(response: ServersResponse)
 
     fun retrieveServers(): Flow<ServersResponse?>

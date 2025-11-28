@@ -1,6 +1,6 @@
 package me.mitkovic.kmp.netpulse.logging
 
-interface AppLogger {
+interface IAppLogger {
 
     fun logDebug(
         tag: String? = null,

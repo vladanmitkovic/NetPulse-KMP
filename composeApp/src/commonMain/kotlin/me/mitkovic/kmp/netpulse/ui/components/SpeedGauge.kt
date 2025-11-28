@@ -71,14 +71,14 @@ fun SpeedGauge(
         val needleEndX = centerX + needleLength * cos(needleAngleRad)
         val needleEndY = centerY + needleLength * sin(needleAngleRad)
         drawLine(
-            color = Color.Black,
+            color = Color.Gray,
             start = Offset(centerX, centerY),
             end = Offset(needleEndX, needleEndY),
             strokeWidth = radius * 0.1f,
         )
 
         drawCircle(
-            color = Color.Black,
+            color = Color.Gray,
             radius = radius * 0.1f,
             center = Offset(centerX, centerY),
         )

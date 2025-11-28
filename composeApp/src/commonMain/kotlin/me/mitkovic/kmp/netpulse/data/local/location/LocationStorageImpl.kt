@@ -11,7 +11,7 @@ import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
 class LocationStorageImpl(
     private val database: NetPulseDatabase,
-) : LocationStorage {
+) : ILocationStorage {
 
     override suspend fun storeCurrentLocation(
         response: GeoIpResponse,

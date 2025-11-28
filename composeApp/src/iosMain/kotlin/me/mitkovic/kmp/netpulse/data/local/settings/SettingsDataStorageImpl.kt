@@ -6,7 +6,7 @@ import platform.Foundation.NSUserDefaults
 
 class SettingsDataStorageImpl(
     private val defaults: NSUserDefaults,
-) : SettingsDataStorage {
+) : ISettingsDataStorage {
 
     private val DURATION_KEY = "test_duration"
     private val PINGS_KEY = "number_of_pings"

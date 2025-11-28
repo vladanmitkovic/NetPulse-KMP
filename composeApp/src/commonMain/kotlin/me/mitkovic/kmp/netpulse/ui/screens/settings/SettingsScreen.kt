@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,33 +17,46 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun SettingsScreen(viewModel: SettingsScreenViewModel) {
-    val testDuration by viewModel.testDuration.collectAsStateWithLifecycle(10)
-    val numberOfPings by viewModel.numberOfPings.collectAsStateWithLifecycle(10)
+    val settingsUi by viewModel.settingsUi.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         // Test Duration Slider
         Text(
-            text = "Test Duration: $testDuration s",
+            text = settingsUi.testDurationLabel,
             style = MaterialTheme.typography.labelMedium,
         )
         Slider(
-            value = testDuration.toFloat(),
-            onValueChange = { viewModel.saveTestDuration(it.toInt()) },
+            value = settingsUi.testDurationValue,
+            onValueChange = viewModel::onTestDurationChanged,
             valueRange = 5f..20f,
             steps = 5,
+            colors =
+                SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.secondary,
+                    activeTickColor = MaterialTheme.colorScheme.secondary,
+                    inactiveTickColor = MaterialTheme.colorScheme.primary,
+                ),
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         // Number of Pings Slider
         Text(
-            text = "Number of Pings: $numberOfPings",
+            text = settingsUi.numberOfPingsLabel,
             style = MaterialTheme.typography.labelMedium,
         )
         Slider(
-            value = numberOfPings.toFloat(),
-            onValueChange = { viewModel.saveNumberOfPings(it.toInt()) },
+            value = settingsUi.numberOfPingsValue,
+            onValueChange = viewModel::onNumberOfPingsChanged,
             valueRange = 5f..20f,
             steps = 5,
+            colors =
+                SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.secondary,
+                    activeTickColor = MaterialTheme.colorScheme.secondary,
+                    inactiveTickColor = MaterialTheme.colorScheme.primary,
+                ),
         )
     }
 }

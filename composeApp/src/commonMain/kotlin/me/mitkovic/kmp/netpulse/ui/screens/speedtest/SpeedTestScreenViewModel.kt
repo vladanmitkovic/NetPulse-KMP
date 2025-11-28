@@ -4,13 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.data.model.SpeedTestProgress
-import me.mitkovic.kmp.netpulse.data.repository.AppRepository
+import me.mitkovic.kmp.netpulse.data.repository.IAppRepository
 import me.mitkovic.kmp.netpulse.domain.model.Server
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
+import me.mitkovic.kmp.netpulse.util.formatDistanceMetersToKm
+import me.mitkovic.kmp.netpulse.util.formatDoubleToInt
 import kotlin.coroutines.cancellation.CancellationException
 
 sealed class ServerUiState {
@@ -21,7 +26,7 @@ sealed class ServerUiState {
     ) : ServerUiState()
 
     data class Error(
-        val error: String,
+        val errorText: String,
     ) : ServerUiState()
 }
 
@@ -29,15 +34,31 @@ sealed class DatabaseUiState {
     object Loading : DatabaseUiState()
 
     data class Error(
-        val error: String,
+        val errorText: String,
     ) : DatabaseUiState()
 
     object Completed : DatabaseUiState()
 }
 
+data class SpeedTestUi(
+    val pingText: String = "0 ms",
+    val jitterText: String = "0 ms",
+    val packetLossText: String = "0 %",
+    val downloadSpeed: Float? = null,
+    val uploadSpeed: Float? = null,
+    val downloadSpeedText: String = "0",
+    val uploadSpeedText: String = "0",
+)
+
+data class ServerInfoUi(
+    val sponsor: String,
+    val locationText: String,
+    val formattedDistance: String,
+)
+
 class SpeedTestScreenViewModel(
-    private val appRepository: AppRepository,
-    private val logger: AppLogger,
+    private val appRepository: IAppRepository,
+    private val logger: IAppLogger,
     serverId: Int,
 ) : ViewModel() {
 
@@ -51,32 +72,70 @@ class SpeedTestScreenViewModel(
     val serverUiState: StateFlow<ServerUiState> = _serverUiState.asStateFlow()
 
     private val _progress = MutableStateFlow(SpeedTestProgress())
-    val progress: StateFlow<SpeedTestProgress> = _progress.asStateFlow()
+
+    val progressUi: StateFlow<SpeedTestUi> =
+        _progress
+            .map { progress -> mapToUi(progress) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = SpeedTestUi(),
+            )
+
+    val serverInfoUi: StateFlow<ServerInfoUi?> =
+        _serverUiState
+            .map { state ->
+                when (state) {
+                    is ServerUiState.Success -> state.server?.let { mapServerToUi(it) }
+                    else -> null
+                }
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = null,
+            )
+
+    private fun mapToUi(progress: SpeedTestProgress): SpeedTestUi =
+        SpeedTestUi(
+            pingText = "${formatDoubleToInt(progress.ping)} ms",
+            jitterText = "${formatDoubleToInt(progress.jitter)} ms",
+            packetLossText = "${formatDoubleToInt(progress.packetLoss)} %",
+            downloadSpeed = progress.downloadSpeed?.toFloat(),
+            uploadSpeed = progress.uploadSpeed?.toFloat(),
+            downloadSpeedText = formatDoubleToInt(progress.downloadSpeed),
+            uploadSpeedText = formatDoubleToInt(progress.uploadSpeed),
+        )
+
+    private fun mapServerToUi(server: Server): ServerInfoUi =
+        ServerInfoUi(
+            sponsor = server.sponsor,
+            locationText = "${server.name} • ${server.country} • ",
+            formattedDistance = formatDistanceMetersToKm(server.distance),
+        )
 
     init {
         logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Initialized with serverId: $serverId")
         viewModelScope.launch {
             val server = appRepository.speedTestRepository.getServer(serverId)
-            _serverUiState.value =
-                if (server != null) {
-                    ServerUiState.Success(server)
-                    if (!hasRunSpeedTest) {
-                        hasRunSpeedTest = true
-                        startSpeedTest(server)
-                    }
-                    logger.logError(
-                        SpeedTestScreenViewModel::class.simpleName,
-                        "Speed test on server: $server",
-                        null,
-                    )
-                    ServerUiState.Success(server)
-                } else {
-                    ServerUiState.Error("Server not found for ID: $serverId")
+            if (server != null) {
+                _serverUiState.value = ServerUiState.Success(server)
+                if (!hasRunSpeedTest) {
+                    hasRunSpeedTest = true
+                    startSpeedTest(server)
                 }
+                logger.logDebug(
+                    SpeedTestScreenViewModel::class.simpleName,
+                    "Speed test on server: $server",
+                )
+            } else {
+                _serverUiState.value =
+                    ServerUiState.Error(
+                        errorText = "Error: Server not found for ID: $serverId",
+                    )
+            }
         }
     }
 
-    // SpeedTestScreenViewModel - startSpeedTest method
     fun startSpeedTest(server: Server) {
         speedTestJob =
             viewModelScope.launch {
@@ -89,7 +148,12 @@ class SpeedTestScreenViewModel(
                         if (prog.downloadSpeed != null) _progress.value = _progress.value.copy(downloadSpeed = prog.downloadSpeed)
                         if (prog.uploadSpeed != null) _progress.value = _progress.value.copy(uploadSpeed = prog.uploadSpeed)
                         if (prog.isCompleted) _databaseUiState.value = DatabaseUiState.Completed
-                        if (prog.error != null) _databaseUiState.value = DatabaseUiState.Error(prog.error)
+                        if (prog.error != null) {
+                            _databaseUiState.value =
+                                DatabaseUiState.Error(
+                                    errorText = "Result Error: ${prog.error}",
+                                )
+                        }
                     }
                 } catch (e: CancellationException) {
                     logger.logDebug(SpeedTestScreenViewModel::class.simpleName, "Speed test cancelled: ${e.message}")

@@ -2,7 +2,7 @@ package me.mitkovic.kmp.netpulse.data.local.theme
 
 import kotlinx.coroutines.flow.Flow
 
-interface ThemeDataStorage {
+interface IThemeDataStorage {
 
     suspend fun saveTheme(isLightMode: Boolean)
 
