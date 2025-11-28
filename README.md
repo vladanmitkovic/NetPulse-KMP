@@ -2,7 +2,7 @@
 
 **NetPulse** - KMP is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop, built with Compose Multiplatform, Navigation Compose, Flow, Koin, Ktor, SqlDelight, DataStore, NSUserDefaults and Material3 based on MVVM architecture.
 
-<img src="previews/netpulse.jpg" alt="App screenshot" style="max-width: 100%;">
+<img src="previews/netpulse.jpg" width="450" alt="App screenshot" style="max-width: 100%;">
 
 It is a app designed to help you find your current network speed.
 
