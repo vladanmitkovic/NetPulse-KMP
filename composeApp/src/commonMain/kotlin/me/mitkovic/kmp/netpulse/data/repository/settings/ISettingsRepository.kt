@@ -2,7 +2,7 @@ package me.mitkovic.kmp.netpulse.data.repository.settings
 
 import kotlinx.coroutines.flow.Flow
 
-interface SettingsRepository {
+interface ISettingsRepository {
 
     suspend fun saveTestDuration(seconds: Int)
 

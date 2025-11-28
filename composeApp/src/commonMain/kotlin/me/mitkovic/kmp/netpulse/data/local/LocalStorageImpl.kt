@@ -1,15 +1,15 @@
 package me.mitkovic.kmp.netpulse.data.local
 
-import me.mitkovic.kmp.netpulse.data.local.location.LocationStorage
-import me.mitkovic.kmp.netpulse.data.local.server.ServerStorage
-import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorage
-import me.mitkovic.kmp.netpulse.data.local.testresult.TestResultStorage
-import me.mitkovic.kmp.netpulse.data.local.theme.ThemeDataStorage
+import me.mitkovic.kmp.netpulse.data.local.location.ILocationStorage
+import me.mitkovic.kmp.netpulse.data.local.server.IServerStorage
+import me.mitkovic.kmp.netpulse.data.local.settings.ISettingsDataStorage
+import me.mitkovic.kmp.netpulse.data.local.testresult.ITestResultStorage
+import me.mitkovic.kmp.netpulse.data.local.theme.IThemeDataStorage
 
 class LocalStorageImpl(
-    override val locationStorage: LocationStorage,
-    override val serverStorage: ServerStorage,
-    override val testResultStorage: TestResultStorage,
-    override val themeDataStorage: ThemeDataStorage,
-    override val settingsDataStorage: SettingsDataStorage,
-) : LocalStorage
+    override val locationStorage: ILocationStorage,
+    override val serverStorage: IServerStorage,
+    override val testResultStorage: ITestResultStorage,
+    override val themeDataStorage: IThemeDataStorage,
+    override val settingsDataStorage: ISettingsDataStorage,
+) : ILocalStorage

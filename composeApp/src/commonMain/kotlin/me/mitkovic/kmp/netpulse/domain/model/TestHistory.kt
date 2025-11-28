@@ -1,8 +1,5 @@
 package me.mitkovic.kmp.netpulse.domain.model
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class TestHistory(
     val sessionId: Long,
     val timestamp: Long,

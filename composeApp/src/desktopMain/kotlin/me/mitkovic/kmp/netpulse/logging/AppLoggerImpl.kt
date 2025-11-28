@@ -1,6 +1,6 @@
 package me.mitkovic.kmp.netpulse.logging
 
-class AppLoggerImpl : AppLogger {
+actual class AppLoggerImpl : IAppLogger {
 
     override fun logDebug(
         tag: String?,

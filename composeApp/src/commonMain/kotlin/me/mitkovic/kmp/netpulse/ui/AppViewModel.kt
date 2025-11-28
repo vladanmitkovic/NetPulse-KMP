@@ -7,12 +7,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.mitkovic.kmp.netpulse.common.Constants
 import me.mitkovic.kmp.netpulse.data.model.Resource
-import me.mitkovic.kmp.netpulse.data.repository.AppRepository
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.data.repository.IAppRepository
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
 
 class AppViewModel(
-    private val appRepository: AppRepository,
-    private val logger: AppLogger,
+    private val appRepository: IAppRepository,
+    private val logger: IAppLogger,
 ) : ViewModel() {
 
     init {

@@ -17,14 +17,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import me.mitkovic.kmp.netpulse.logging.AppLogger
-import me.mitkovic.kmp.netpulse.ui.common.ApplicationTitle
-import me.mitkovic.kmp.netpulse.ui.common.BottomNavigationBar
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
+import me.mitkovic.kmp.netpulse.ui.components.ApplicationTitle
+import me.mitkovic.kmp.netpulse.ui.components.BottomNavigationBar
 import me.mitkovic.kmp.netpulse.ui.navigation.AppNavHost
 import me.mitkovic.kmp.netpulse.ui.navigation.currentTopBarState
 import me.mitkovic.kmp.netpulse.ui.theme.AppTheme
@@ -44,8 +45,11 @@ fun App() {
 
     val themeValue by appViewModel.theme.collectAsStateWithLifecycle(initialValue = null)
 
-    val appLogger: AppLogger = koinInject()
-    appLogger.logDebug("App", "App Start from: ${Greeting().greet()}")
+    val appLogger: IAppLogger = koinInject()
+
+    LaunchedEffect(Unit) {
+        appLogger.logDebug("App", "App Start from: ${Greeting().greet()}")
+    }
 
     themeValue?.let { loadedTheme ->
         AppTheme(isLightTheme = loadedTheme) {

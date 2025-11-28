@@ -9,6 +9,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.content.ByteArrayContent
 import io.ktor.http.headers
@@ -23,13 +24,20 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import me.mitkovic.kmp.netpulse.common.Constants
+import me.mitkovic.kmp.netpulse.data.model.GeoIpErrorResponse
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.data.model.PingResult
 import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.Server
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import me.mitkovic.kmp.netpulse.util.calculateAverage
 import me.mitkovic.kmp.netpulse.util.calculateJitter
 import me.mitkovic.kmp.netpulse.util.calculatePacketLoss
@@ -43,9 +51,9 @@ import kotlin.time.measureTime
 
 class RemoteServiceImpl(
     private val client: HttpClient,
-    private val logger: AppLogger,
+    private val logger: IAppLogger,
     private val xmlFormat: XML,
-) : RemoteService {
+) : IRemoteService {
 
     private val imageSizes =
         listOf(
@@ -63,7 +71,7 @@ class RemoteServiceImpl(
 
     override suspend fun fetchSpeedTestServers(): Flow<Resource<ServersResponse>> =
         flow {
-            emit(Resource.Loading)
+            emit(Resource.Loading())
             try {
                 val xmlString: String =
                     client
@@ -86,7 +94,7 @@ class RemoteServiceImpl(
                     message = "Error fetching XML: ${e.message}",
                     throwable = e,
                 )
-                emit(Resource.Error(e.message ?: "Unknown error"))
+                emit(Resource.Error(e.message ?: "Unknown error", exception = e))
             }
         }
 
@@ -202,7 +210,7 @@ class RemoteServiceImpl(
     override suspend fun measurePingAndJitter(
         server: Server,
         count: Int,
-    ): PingResult = pingServer(server, count = 10)
+    ): PingResult = pingServer(server, count = count)
 
     @OptIn(ExperimentalTime::class)
     private suspend fun downloadTest(
@@ -211,6 +219,7 @@ class RemoteServiceImpl(
     ): Double {
         val timestamp = Clock.System.now().toEpochMilliseconds() / 1000
         val randomId = Random.nextInt(100000, 999999)
+        logger.logDebug(RemoteServiceImpl::class.simpleName, "server.url: $server")
         val downloadUrl = server.url.replace("upload.php", "random${imageSize}x$imageSize.jpg?x=$timestamp&y=$randomId")
         logger.logDebug(RemoteServiceImpl::class.simpleName, "Download URL: $downloadUrl")
         var totalBytes = 0L
@@ -345,17 +354,24 @@ class RemoteServiceImpl(
         }
     }
 
-    override suspend fun getUserLocation(): GeoIpResponse? =
-        try {
-            val response: GeoIpResponse = client.get("https://ipapi.co/json/").body()
-            if (response.error == true) {
-                logger.logError(RemoteServiceImpl::class.simpleName, "GeoIP error: ${response.reason}", null)
-                null
-            } else {
-                response
+    override suspend fun getUserLocation(): GeoIpResponse? {
+        return try {
+            val httpResponse = client.get("https://ipapi.co/json/")
+            val rawBody = httpResponse.bodyAsText()
+            logger.logDebug(RemoteServiceImpl::class.simpleName, "Raw GeoIP: $rawBody")
+
+            val jsonElement: JsonElement = Json.parseToJsonElement(rawBody)
+
+            if (jsonElement.jsonObject["error"]?.jsonPrimitive?.booleanOrNull == true) {
+                val error = Json.decodeFromJsonElement<GeoIpErrorResponse>(jsonElement)
+                logger.logError(RemoteServiceImpl::class.simpleName, "GeoIP error: ${error.reason ?: error.message ?: "Unknown"}", null)
+                return null
             }
+
+            Json.decodeFromJsonElement<GeoIpResponse>(jsonElement)
         } catch (e: Exception) {
-            logger.logError(RemoteServiceImpl::class.simpleName, "Failed to get user location: ${e.message}", e)
+            logger.logError(RemoteServiceImpl::class.simpleName, "Failed: ${e.message}", e)
             null
         }
+    }
 }
