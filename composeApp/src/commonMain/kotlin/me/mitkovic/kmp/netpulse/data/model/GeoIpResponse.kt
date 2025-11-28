@@ -2,7 +2,6 @@ package me.mitkovic.kmp.netpulse.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
 @Serializable
 data class GeoIpResponse(
