@@ -2,7 +2,7 @@ package me.mitkovic.kmp.netpulse.logging
 
 import timber.log.Timber
 
-class AppLoggerImpl : AppLogger {
+actual class AppLoggerImpl : IAppLogger {
 
     override fun logDebug(
         tag: String?,

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.map
 
 class SettingsDataStorageImpl(
     private val dataStore: DataStore<Preferences>,
-) : SettingsDataStorage {
+) : ISettingsDataStorage {
     companion object {
         private val DURATION_KEY = intPreferencesKey("test_duration")
         private val PINGS_KEY = intPreferencesKey("number_of_pings")

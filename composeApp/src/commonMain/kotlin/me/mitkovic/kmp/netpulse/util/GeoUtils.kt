@@ -2,6 +2,7 @@ package me.mitkovic.kmp.netpulse.util
 
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -23,3 +24,5 @@ fun haversineDistance(
 }
 
 private fun toRadians(degrees: Double): Double = degrees * (kotlin.math.PI / 180.0)
+
+fun formatDistanceMetersToKm(distanceMeters: Double?): String = distanceMeters?.let { "${(it / 1000).roundToInt()} km" } ?: "N/A"

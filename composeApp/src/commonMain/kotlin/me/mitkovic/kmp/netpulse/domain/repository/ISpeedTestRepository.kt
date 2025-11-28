@@ -9,7 +9,7 @@ import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.domain.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
-interface SpeedTestRepository {
+interface ISpeedTestRepository {
     suspend fun fetchAndSaveUserLocation(): UserLocation?
 
     fun getServers(): Flow<Resource<ServersResponse?>>

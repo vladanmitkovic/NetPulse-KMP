@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse.ui.common
+package me.mitkovic.kmp.netpulse.ui.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer

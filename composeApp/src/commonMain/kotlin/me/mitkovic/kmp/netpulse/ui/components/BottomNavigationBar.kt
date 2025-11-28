@@ -1,4 +1,4 @@
-package me.mitkovic.kmp.netpulse.ui.common
+package me.mitkovic.kmp.netpulse.ui.components
 
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -27,22 +26,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import me.mitkovic.kmp.netpulse.domain.model.TestHistory
-import me.mitkovic.kmp.netpulse.logging.AppLogger
 import me.mitkovic.kmp.netpulse.ui.components.LinearChart
-import org.koin.compose.koinInject
-import kotlin.math.roundToInt
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @Composable
 fun HistoryScreen(viewModel: HistoryScreenViewModel) {
-    val history by viewModel.history.collectAsState(initial = emptyList())
-    val logger: AppLogger = koinInject()
+    val history by viewModel.historyItems.collectAsState(initial = emptyList())
+
     if (history.isEmpty()) {
         Column(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -52,16 +46,14 @@ fun HistoryScreen(viewModel: HistoryScreenViewModel) {
             Text(text = "No speed tests performed yet.", color = MaterialTheme.colorScheme.onBackground)
         }
     } else {
-        logger.logDebug("HistoryScreen", "Displaying ${history.size} test sessions")
         LazyColumn(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(16.dp),
         ) {
-            items(history) { item ->
-                logger.logDebug(
-                    "HistoryScreen",
-                    "Rendering session ${item.sessionId}: downloadSpeed=${item.downloadSpeed}, uploadSpeed=${item.uploadSpeed}",
-                )
+            items(
+                items = history,
+                key = { it.sessionId },
+            ) { item ->
                 TestHistoryItem(item, onDelete = { viewModel.deleteSession(item.sessionId) })
             }
         }
@@ -70,7 +62,7 @@ fun HistoryScreen(viewModel: HistoryScreenViewModel) {
 
 @Composable
 fun TestHistoryItem(
-    item: TestHistory,
+    item: HistoryItemUi,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -100,22 +92,29 @@ fun TestHistoryItem(
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
-                        text = formatTimestamp(item.timestamp),
+                        text = item.formattedTimestamp,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 16.dp),
                     )
                     Text(
-                        text = "${item.serverName}, ${item.serverCountry}",
+                        text = item.serverSponsor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text =
+                            buildAnnotatedString {
+                                append(item.serverLocationText)
+                                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append(item.formattedDistance)
+                                }
+                            },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(top = 4.dp),
-                    )
-                    Text(
-                        text = "${item.serverSponsor}, ${item.serverDistance.let { (it / 1000).roundToInt() }} km",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
                 IconButton(
@@ -137,27 +136,27 @@ fun TestHistoryItem(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = 16.dp),
             ) {
                 // Row for Ping, Jitter, Packet Loss
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    MetricItem(label = "Ping", value = item.ping?.roundToInt() ?: "N/A", unit = "ms")
-                    MetricItem(label = "Jitter", value = item.jitter?.roundToInt() ?: "N/A", unit = "ms")
-                    MetricItem(label = "Packet Loss", value = item.packetLoss?.roundToInt() ?: "N/A", unit = "%")
+                    MetricItem(label = "Ping", value = item.pingText)
+                    MetricItem(label = "Jitter", value = item.jitterText)
+                    MetricItem(label = "Packet Loss", value = item.packetLossText)
                 }
                 // Download part
                 Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 12.dp),
+                            .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(2f)) {
                         Text(
                             text = "DOWNLOAD",
                             style = MaterialTheme.typography.labelMedium,
@@ -165,21 +164,21 @@ fun TestHistoryItem(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "${item.downloadSpeed?.roundToInt() ?: "N/A"} Mbps",
+                            text = item.downloadSpeedText,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Normal,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
                     Box(
                         modifier =
                             Modifier
-                                .width(100.dp)
+                                .weight(3f)
                                 .height(40.dp),
                     ) {
                         LinearChart(
                             speeds = item.downloadSpeeds,
-                            lineColor = MaterialTheme.colorScheme.primary,
+                            lineColor = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -189,11 +188,11 @@ fun TestHistoryItem(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 12.dp),
+                            .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(2f)) {
                         Text(
                             text = "UPLOAD",
                             style = MaterialTheme.typography.labelMedium,
@@ -201,21 +200,21 @@ fun TestHistoryItem(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "${item.uploadSpeed?.roundToInt() ?: "N/A"} Mbps",
+                            text = item.uploadSpeedText,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Normal,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
                     Box(
                         modifier =
                             Modifier
-                                .width(100.dp)
+                                .weight(3f)
                                 .height(40.dp),
                     ) {
                         LinearChart(
                             speeds = item.uploadSpeeds,
-                            lineColor = MaterialTheme.colorScheme.primary,
+                            lineColor = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -228,8 +227,7 @@ fun TestHistoryItem(
 @Composable
 private fun MetricItem(
     label: String,
-    value: Any,
-    unit: String,
+    value: String,
 ) {
     Column {
         Text(
@@ -239,16 +237,9 @@ private fun MetricItem(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "$value $unit",
+            text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
     }
-}
-
-@OptIn(ExperimentalTime::class)
-private fun formatTimestamp(timestamp: Long): String {
-    val instant = Instant.fromEpochMilliseconds(timestamp)
-    val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${localDateTime.date} ${localDateTime.time.hour}:${localDateTime.time.minute.toString().padStart(2, '0')}"
 }

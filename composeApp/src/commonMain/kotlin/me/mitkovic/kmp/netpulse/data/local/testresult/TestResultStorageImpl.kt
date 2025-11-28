@@ -10,12 +10,12 @@ import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
 import me.mitkovic.kmp.netpulse.data.local.database.TestSession
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
 
 class TestResultStorageImpl(
     private val database: NetPulseDatabase,
-    private val logger: AppLogger,
-) : TestResultStorage {
+    private val logger: IAppLogger,
+) : ITestResultStorage {
 
     override suspend fun insertTestSession(
         serverId: String,

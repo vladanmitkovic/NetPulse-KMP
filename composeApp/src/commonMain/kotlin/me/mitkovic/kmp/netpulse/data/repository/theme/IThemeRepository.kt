@@ -2,9 +2,9 @@ package me.mitkovic.kmp.netpulse.data.repository.theme
 
 import kotlinx.coroutines.flow.Flow
 
-interface ThemeRepository {
+interface IThemeRepository {
 
-    suspend fun saveTheme(isDarkMode: Boolean)
+    suspend fun saveTheme(isLightMode: Boolean)
 
     fun getTheme(): Flow<Boolean>
 }

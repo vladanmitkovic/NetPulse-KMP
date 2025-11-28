@@ -1,18 +1,20 @@
 package me.mitkovic.kmp.netpulse.di
 
-import me.mitkovic.kmp.netpulse.data.local.LocalStorage
-import me.mitkovic.kmp.netpulse.data.remote.RemoteService
-import me.mitkovic.kmp.netpulse.data.repository.AppRepository
+import me.mitkovic.kmp.netpulse.data.local.ILocalStorage
+import me.mitkovic.kmp.netpulse.data.remote.IRemoteService
 import me.mitkovic.kmp.netpulse.data.repository.AppRepositoryImpl
-import me.mitkovic.kmp.netpulse.data.repository.settings.SettingsRepository
+import me.mitkovic.kmp.netpulse.data.repository.IAppRepository
+import me.mitkovic.kmp.netpulse.data.repository.settings.ISettingsRepository
 import me.mitkovic.kmp.netpulse.data.repository.settings.SettingsRepositoryImpl
 import me.mitkovic.kmp.netpulse.data.repository.speedtest.SpeedTestRepositoryImpl
-import me.mitkovic.kmp.netpulse.data.repository.theme.ThemeRepository
+import me.mitkovic.kmp.netpulse.data.repository.theme.IThemeRepository
 import me.mitkovic.kmp.netpulse.data.repository.theme.ThemeRepositoryImpl
-import me.mitkovic.kmp.netpulse.domain.repository.SpeedTestRepository
-import me.mitkovic.kmp.netpulse.logging.AppLogger
+import me.mitkovic.kmp.netpulse.domain.repository.ISpeedTestRepository
+import me.mitkovic.kmp.netpulse.logging.AppLoggerImpl
+import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import me.mitkovic.kmp.netpulse.platform.Platform
 import me.mitkovic.kmp.netpulse.platform.getPlatform
+import nl.adaptivity.xmlutil.serialization.XML
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -24,32 +26,43 @@ val commonModule =
             getPlatform()
         }
 
-        single<ThemeRepository> {
+        single<IAppLogger> {
+            AppLoggerImpl()
+        }
+
+        single<XML> {
+            XML {
+                indentString = "  "
+                repairNamespaces = true
+            }
+        }
+
+        single<IThemeRepository> {
             ThemeRepositoryImpl(
-                localStorage = get<LocalStorage>(),
+                localStorage = get<ILocalStorage>(),
             )
         }
 
-        single<SettingsRepository> {
+        single<ISettingsRepository> {
             SettingsRepositoryImpl(
-                localStorage = get<LocalStorage>(),
+                localStorage = get<ILocalStorage>(),
             )
         }
 
-        single<SpeedTestRepository> {
+        single<ISpeedTestRepository> {
             SpeedTestRepositoryImpl(
-                localStorage = get<LocalStorage>(),
-                remoteService = get<RemoteService>(),
-                settingsRepository = get<SettingsRepository>(),
-                logger = get<AppLogger>(),
+                localStorage = get<ILocalStorage>(),
+                remoteService = get<IRemoteService>(),
+                settingsRepository = get<ISettingsRepository>(),
+                logger = get<IAppLogger>(),
             )
         }
 
-        single<AppRepository> {
+        single<IAppRepository> {
             AppRepositoryImpl(
-                speedTestRepository = get<SpeedTestRepository>(),
-                themeRepository = get<ThemeRepository>(),
-                settingsRepository = get<SettingsRepository>(),
+                speedTestRepository = get<ISpeedTestRepository>(),
+                themeRepository = get<IThemeRepository>(),
+                settingsRepository = get<ISettingsRepository>(),
             )
         }
     }
@@ -59,6 +72,8 @@ expect fun platformModule(): Module
 fun initKoin(koinContext: KoinApplication.() -> Unit = {}) {
     try {
         startKoin {
+            // allow platform bindings to replace common ones
+            allowOverride(true)
             koinContext()
             modules(commonModule, platformModule(), viewModelModule)
         }

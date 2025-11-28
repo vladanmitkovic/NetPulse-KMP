@@ -1,11 +1,11 @@
 package me.mitkovic.kmp.netpulse.data.repository.settings
 
 import kotlinx.coroutines.flow.Flow
-import me.mitkovic.kmp.netpulse.data.local.LocalStorage
+import me.mitkovic.kmp.netpulse.data.local.ILocalStorage
 
 class SettingsRepositoryImpl(
-    private val localStorage: LocalStorage,
-) : SettingsRepository {
+    private val localStorage: ILocalStorage,
+) : ISettingsRepository {
 
     override suspend fun saveTestDuration(seconds: Int) {
         localStorage.settingsDataStorage.saveTestDuration(seconds)

@@ -7,7 +7,7 @@ import me.mitkovic.kmp.netpulse.data.model.Resource
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 import me.mitkovic.kmp.netpulse.domain.model.Server
 
-interface RemoteService {
+interface IRemoteService {
     suspend fun fetchSpeedTestServers(): Flow<Resource<ServersResponse>>
 
     suspend fun findNearestServer(servers: List<Server>): Server?
