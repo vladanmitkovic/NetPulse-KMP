@@ -30,6 +30,7 @@ val commonModule =
             AppLoggerImpl()
         }
 
+        // Default XML config (can be overridden in platform modules)
         single<XML> {
             XML {
                 indentString = "  "
@@ -67,6 +68,7 @@ val commonModule =
         }
     }
 
+// Platform-specific DI must be provided per target.
 expect fun platformModule(): Module
 
 fun initKoin(koinContext: KoinApplication.() -> Unit = {}) {

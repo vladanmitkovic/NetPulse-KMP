@@ -34,7 +34,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Normal
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.mitkovic.kmp.netpulse.common.Constants.DOWNLOAD_TIMEOUT
@@ -42,6 +41,7 @@ import me.mitkovic.kmp.netpulse.common.Constants.UPLOAD_TIMEOUT
 import me.mitkovic.kmp.netpulse.ui.components.LinearChart
 import me.mitkovic.kmp.netpulse.ui.components.SpeedGauge
 import me.mitkovic.kmp.netpulse.ui.components.VerticalProgressIndicator
+import me.mitkovic.kmp.netpulse.ui.theme.spacing
 
 @Composable
 fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
@@ -68,7 +68,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
             is ServerUiState.Loading -> {
                 Text(
                     text = "Loading server...",
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(MaterialTheme.spacing.medium),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }
@@ -83,7 +83,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
             is ServerUiState.Error -> {
                 Text(
                     text = (serverState as ServerUiState.Error).errorText,
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(MaterialTheme.spacing.medium),
                     color = MaterialTheme.colorScheme.secondary,
                 )
             }
@@ -93,7 +93,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
             is DatabaseUiState.Error -> {
                 Text(
                     text = (databaseState as DatabaseUiState.Error).errorText,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = MaterialTheme.spacing.small),
                     color = MaterialTheme.colorScheme.secondary,
                 )
             }
@@ -114,7 +114,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = MaterialTheme.spacing.medium),
                 ) {
                     if (serverInfoUi != null) {
                         ServerInfoCard(
@@ -123,7 +123,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                                 Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.BottomCenter)
-                                    .padding(bottom = 16.dp),
+                                    .padding(bottom = MaterialTheme.spacing.medium),
                         )
                     }
                 }
@@ -142,7 +142,7 @@ private fun ServerInfoCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary),
     ) {
         Column(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(MaterialTheme.spacing.small),
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
@@ -225,13 +225,14 @@ fun Speedometer(
     val isDownloading = currentTestType == 1L && !isTestCompleted
     val isUploading = currentTestType == 2L && !isTestCompleted
     val color = MaterialTheme.colorScheme.tertiary
+    val spacing = MaterialTheme.spacing
 
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp),
+                .padding(start = spacing.medium, end = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -250,7 +251,7 @@ fun Speedometer(
                 Button(
                     onClick = onRetest,
                     shape = CircleShape,
-                    modifier = Modifier.size(200.dp),
+                    modifier = Modifier.size(spacing.buttonSizeLarge),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 ) {
                     Text(
@@ -266,7 +267,7 @@ fun Speedometer(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(top = 32.dp),
+                    .padding(top = spacing.xLarge),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             Column(
@@ -289,7 +290,7 @@ fun Speedometer(
                     text = "JITTER",
                     fontSize = 12.sp,
                     fontWeight = Bold,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = spacing.small),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
@@ -302,7 +303,7 @@ fun Speedometer(
                     text = "PCKT. LOSS",
                     fontSize = 12.sp,
                     fontWeight = Bold,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = spacing.small),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
@@ -345,7 +346,7 @@ fun Speedometer(
                         )
                     }
                     Row {
-                        Box(modifier = Modifier.width(20.dp)) {
+                        Box(modifier = Modifier.width(spacing.small20)) {
                             if (currentTestType == 1L || lastDownloadSpeed != null) {
                                 VerticalProgressIndicator(
                                     progress = if (currentTestType != 1L || isTestCompleted) 1f else 0f,
@@ -357,13 +358,13 @@ fun Speedometer(
                                     fromBottom = false,
                                     modifier =
                                         Modifier
-                                            .width(4.dp)
-                                            .height(60.dp)
+                                            .width(spacing.progressIndicatorWidth)
+                                            .height(spacing.chartHeightLarge)
                                             .align(Alignment.Center),
                                 )
                             }
                         }
-                        Box(modifier = Modifier.width(100.dp).height(60.dp)) {
+                        Box(modifier = Modifier.width(spacing.chartWidth).height(spacing.chartHeightLarge)) {
                             if (currentTestType == 1L || lastDownloadSpeed != null) {
                                 LinearChart(
                                     speeds = downloadSpeeds,
@@ -379,7 +380,7 @@ fun Speedometer(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp),
+                            .padding(top = spacing.medium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -410,8 +411,8 @@ fun Speedometer(
                         Box(
                             modifier =
                                 Modifier
-                                    .width(20.dp)
-                                    .height(60.dp),
+                                    .width(spacing.small20)
+                                    .height(spacing.chartHeightLarge),
                         ) {
                             if (currentTestType == 2L || lastUploadSpeed != null) {
                                 VerticalProgressIndicator(
@@ -424,8 +425,8 @@ fun Speedometer(
                                     fromBottom = true,
                                     modifier =
                                         Modifier
-                                            .width(4.dp)
-                                            .height(60.dp)
+                                            .width(spacing.progressIndicatorWidth)
+                                            .height(spacing.chartHeightLarge)
                                             .align(Alignment.Center),
                                 )
                             }
@@ -433,8 +434,8 @@ fun Speedometer(
                         Box(
                             modifier =
                                 Modifier
-                                    .width(100.dp)
-                                    .height(60.dp),
+                                    .width(spacing.chartWidth)
+                                    .height(spacing.chartHeightLarge),
                         ) {
                             if (currentTestType == 2L || lastUploadSpeed != null) {
                                 LinearChart(

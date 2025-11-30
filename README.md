@@ -2,9 +2,9 @@
 
 **NetPulse** - KMP is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop, built with Compose Multiplatform, Navigation Compose, Flow, Koin, Ktor, SqlDelight, DataStore, NSUserDefaults and Material3 based on MVVM architecture.
 
-<img src="previews/netpulse.jpg" width="450" alt="App screenshot" style="max-width: 100%;">
+<img src="previews/Netpulse.png" alt="App screenshot" style="max-width: 100%;">
 
-It is a app designed to help you find your current network speed.
+It is an app designed to help you find your current network speed.
 
 ## Features
 
@@ -59,11 +59,11 @@ This is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop.
 
 ## Architecture
 
-**NetPulse** - KMP follows the [Google's official architecture guidance](https://developer.android.com/topic/architecture).
+**NetPulse** - KMP follows [Google's official architecture guidance](https://developer.android.com/topic/architecture).
 
 <img src="previews/netpulse_1_architecture.png" alt="Architecture 1">
 
-Exchangify - KMP was built with [Guide to app architecture](https://developer.android.com/topic/architecture), so it would be a great sample to show how the architecture works in real-world projects.
+NetPulse - KMP was built with [Guide to app architecture](https://developer.android.com/topic/architecture), so it would be a great sample to show how the architecture works in real-world projects.
 
 The overall architecture is composed of two layers; UI Layer and the data layer. Each layer has dedicated components and they each have different responsibilities. The arrow means the component has a dependency on the target component following its direction.
 

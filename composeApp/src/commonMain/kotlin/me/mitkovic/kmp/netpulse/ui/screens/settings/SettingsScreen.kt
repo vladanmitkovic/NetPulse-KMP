@@ -12,14 +12,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.mitkovic.kmp.netpulse.ui.theme.spacing
 
 @Composable
 fun SettingsScreen(viewModel: SettingsScreenViewModel) {
     val settingsUi by viewModel.settingsUi.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(MaterialTheme.spacing.medium)) {
         // Test Duration Slider
         Text(
             text = settingsUi.testDurationLabel,
@@ -38,7 +38,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     inactiveTickColor = MaterialTheme.colorScheme.primary,
                 ),
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
 
         // Number of Pings Slider
         Text(
