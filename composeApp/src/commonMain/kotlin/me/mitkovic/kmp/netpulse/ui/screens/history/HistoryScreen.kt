@@ -30,8 +30,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import me.mitkovic.kmp.netpulse.ui.components.LinearChart
+import me.mitkovic.kmp.netpulse.ui.theme.spacing
 
 @Composable
 fun HistoryScreen(viewModel: HistoryScreenViewModel) {
@@ -48,7 +48,7 @@ fun HistoryScreen(viewModel: HistoryScreenViewModel) {
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(MaterialTheme.spacing.medium),
         ) {
             items(
                 items = history,
@@ -69,8 +69,8 @@ fun TestHistoryItem(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                .padding(vertical = MaterialTheme.spacing.small),
+        elevation = CardDefaults.cardElevation(defaultElevation = MaterialTheme.spacing.elevation),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
@@ -80,7 +80,7 @@ fun TestHistoryItem(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(MaterialTheme.spacing.medium),
         ) {
             // Header Section with Delete Button
             Row(
@@ -96,7 +96,7 @@ fun TestHistoryItem(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 16.dp),
+                        modifier = Modifier.padding(bottom = MaterialTheme.spacing.medium),
                     )
                     Text(
                         text = item.serverSponsor,
@@ -114,15 +114,15 @@ fun TestHistoryItem(
                             },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.padding(top = MaterialTheme.spacing.extraSmall),
                     )
                 }
                 IconButton(
                     onClick = onDelete,
                     modifier =
                         Modifier
-                            .size(36.dp)
-                            .padding(start = 8.dp),
+                            .size(MaterialTheme.spacing.deleteButtonSize)
+                            .padding(start = MaterialTheme.spacing.small),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -136,7 +136,7 @@ fun TestHistoryItem(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = MaterialTheme.spacing.medium),
             ) {
                 // Row for Ping, Jitter, Packet Loss
                 Row(
@@ -152,7 +152,7 @@ fun TestHistoryItem(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp),
+                            .padding(top = MaterialTheme.spacing.medium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -174,7 +174,7 @@ fun TestHistoryItem(
                         modifier =
                             Modifier
                                 .weight(3f)
-                                .height(40.dp),
+                                .height(MaterialTheme.spacing.chartHeight),
                     ) {
                         LinearChart(
                             speeds = item.downloadSpeeds,
@@ -188,7 +188,7 @@ fun TestHistoryItem(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp),
+                            .padding(top = MaterialTheme.spacing.medium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -210,7 +210,7 @@ fun TestHistoryItem(
                         modifier =
                             Modifier
                                 .weight(3f)
-                                .height(40.dp),
+                                .height(MaterialTheme.spacing.chartHeight),
                     ) {
                         LinearChart(
                             speeds = item.uploadSpeeds,

@@ -35,8 +35,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Normal
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.mitkovic.kmp.netpulse.ui.theme.spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +52,7 @@ fun HomeScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(MaterialTheme.spacing.medium),
     ) {
         when (nearestServerByLocationState) {
             is NearestServerByLocationUiState.Success -> {
@@ -63,7 +63,7 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .align(Alignment.Center)
-                                .size(200.dp),
+                                .size(MaterialTheme.spacing.buttonSizeLarge),
                         colors =
                             ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.secondary,
@@ -84,8 +84,8 @@ fun HomeScreen(
                             Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                                .clip(RoundedCornerShape(16.dp)),
+                                .padding(bottom = MaterialTheme.spacing.medium)
+                                .clip(RoundedCornerShape(MaterialTheme.spacing.medium)),
                     ) {
                         TextField(
                             readOnly = true,
@@ -127,8 +127,8 @@ fun HomeScreen(
                             sortedServers.forEach { serverUi ->
                                 DropdownMenuItem(
                                     text = {
-                                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                                            Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                                        Column(modifier = Modifier.padding(bottom = MaterialTheme.spacing.medium)) {
+                                            Column(modifier = Modifier.padding(bottom = MaterialTheme.spacing.medium)) {
                                                 Text(
                                                     text = serverUi.sponsor,
                                                     style = MaterialTheme.typography.bodyMedium,
@@ -171,7 +171,7 @@ fun HomeScreen(
                     modifier =
                         Modifier
                             .align(Alignment.TopCenter)
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = MaterialTheme.spacing.small),
                 )
             }
             is NearestServerByLocationUiState.Loading -> {}
@@ -184,13 +184,13 @@ fun HomeScreen(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(MaterialTheme.spacing.medium)
                         .align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
                 CircularProgressIndicator()
-                Text("Finding nearest server...", modifier = Modifier.padding(top = 8.dp))
+                Text("Finding nearest server...", modifier = Modifier.padding(top = MaterialTheme.spacing.small))
             }
 
             /*

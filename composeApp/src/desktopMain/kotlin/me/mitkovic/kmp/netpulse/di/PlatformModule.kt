@@ -26,6 +26,9 @@ import org.koin.dsl.module
 
 actual fun platformModule() =
     module {
+        // Include shared DB + local storage + remote modules
+        includes(databaseModule, localStorageModule, remoteModule)
+
         /*
         single {
             JdbcSqliteDriver("jdbc:sqlite:net_pulse.db").apply {
@@ -35,30 +38,10 @@ actual fun platformModule() =
          */
 
         single<SqlDriver> {
+            // In-memory DB for desktop (as you had)
             JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).apply {
                 NetPulseDatabase.Schema.create(this)
             }
-        }
-
-        single {
-            NetPulseDatabase(
-                driver = get<SqlDriver>(),
-            )
-        }
-
-        single<IServerStorage> {
-            ServerStorageImpl(database = get<NetPulseDatabase>())
-        }
-
-        single<ITestResultStorage> {
-            TestResultStorageImpl(
-                database = get<NetPulseDatabase>(),
-                logger = get<IAppLogger>(),
-            )
-        }
-
-        single<ILocationStorage> {
-            LocationStorageImpl(database = get<NetPulseDatabase>())
         }
 
         single<IThemeDataStorage> {
@@ -69,19 +52,8 @@ actual fun platformModule() =
             SettingsDataStorageImpl()
         }
 
-        single<ILocalStorage> {
-            LocalStorageImpl(
-                testResultStorage = get<ITestResultStorage>(),
-                serverStorage = get<IServerStorage>(),
-                locationStorage = get<ILocationStorage>(),
-                themeDataStorage = get<IThemeDataStorage>(),
-                settingsDataStorage = get<ISettingsDataStorage>(),
-            )
-        }
-
-        // Ktor client with CIO engine + XML support
         single<HttpClient> {
-            val xmlFormat: XML = get<XML>()
+            val xmlFormat: XML = get()
             HttpClient(CIO) {
                 installCommonPlugins(xmlFormat)
 
@@ -89,14 +61,5 @@ actual fun platformModule() =
                     pipelining = true
                 }
             }
-        }
-
-        // RemoteDataSource binding
-        single<IRemoteService> {
-            RemoteServiceImpl(
-                client = get<HttpClient>(),
-                logger = get<IAppLogger>(),
-                xmlFormat = get<XML>(),
-            )
         }
     }
