@@ -16,9 +16,6 @@ import platform.Foundation.NSUserDefaults
 
 actual fun platformModule() =
     module {
-        // Include shared DB + local storage + remote modules
-        includes(databaseModule, localStorageModule, remoteModule)
-
         single<NSUserDefaults> {
             NSUserDefaults.standardUserDefaults()
         }

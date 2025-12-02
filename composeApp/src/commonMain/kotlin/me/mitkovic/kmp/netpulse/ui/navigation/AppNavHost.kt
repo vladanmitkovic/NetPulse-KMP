@@ -5,6 +5,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import me.mitkovic.kmp.netpulse.ui.screens.history.HistoryScreen
 import me.mitkovic.kmp.netpulse.ui.screens.history.HistoryScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.home.HomeScreen
@@ -33,11 +34,10 @@ fun AppNavHost(navHostController: NavController) {
         }
 
         composable<Screen.SpeedTest> { backStackEntry ->
-            val serverId = backStackEntry.arguments?.getInt("serverId") ?: 0
-            val speedTestViewModel: SpeedTestScreenViewModel = koinInject { parametersOf(serverId) }
-            SpeedTestScreen(
-                viewModel = speedTestViewModel,
-            )
+            val args: Screen.SpeedTest = backStackEntry.toRoute()
+            val viewModel: SpeedTestScreenViewModel = koinInject { parametersOf(args.serverId) }
+
+            SpeedTestScreen(viewModel = viewModel)
         }
 
         composable<Screen.History> {
