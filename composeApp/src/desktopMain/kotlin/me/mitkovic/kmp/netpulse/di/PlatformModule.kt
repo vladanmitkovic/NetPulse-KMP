@@ -15,9 +15,6 @@ import org.koin.dsl.module
 
 actual fun platformModule() =
     module {
-        // Include shared DB + local storage + remote modules
-        includes(databaseModule, localStorageModule, remoteModule)
-
         /*
         single {
             JdbcSqliteDriver("jdbc:sqlite:net_pulse.db").apply {

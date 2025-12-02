@@ -1,5 +1,8 @@
+import com.google.devtools.ksp.gradle.KspAATask
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -9,6 +12,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -56,6 +60,7 @@ kotlin {
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.composeVM)
+            api(libs.koin.annotations)
 
             // Coroutines
             implementation(libs.kotlinx.coroutines.core)
@@ -145,6 +150,11 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
         }
 
+        // KSP generated sources
+        sourceSets.named("commonMain").configure {
+            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        }
+
         commonTest.dependencies {
             // Testing
             implementation(libs.kotlin.test)
@@ -195,6 +205,13 @@ android {
 dependencies {
     // Debug Tools
     debugImplementation(compose.uiTooling)
+
+    add("kspCommonMainMetadata", libs.koin.ksp.compiler)
+    add("kspAndroid", libs.koin.ksp.compiler)
+    add("kspIosX64", libs.koin.ksp.compiler)
+    add("kspIosArm64", libs.koin.ksp.compiler)
+    add("kspIosSimulatorArm64", libs.koin.ksp.compiler)
+    add("kspDesktop", libs.koin.ksp.compiler)
 }
 
 compose.desktop {
@@ -217,5 +234,23 @@ sqldelight {
         create("NetPulseDatabase") {
             packageName.set("me.mitkovic.kmp.netpulse.data.local.database")
         }
+    }
+}
+
+ksp {
+    arg("KOIN_CONFIG_CHECK", "true")
+}
+
+// Make Kotlin compilation depend on KSP metadata
+tasks.withType<KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
+}
+
+// KSP task dependencies - ensure proper ordering
+tasks.withType<KspAATask>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
     }
 }

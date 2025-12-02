@@ -7,39 +7,62 @@ import me.mitkovic.kmp.netpulse.ui.screens.history.HistoryScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.home.HomeScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.settings.SettingsScreenViewModel
 import me.mitkovic.kmp.netpulse.ui.screens.speedtest.SpeedTestScreenViewModel
-import org.koin.dsl.module
+import org.koin.core.annotation.Factory
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Module
 
-val viewModelModule =
-    module {
-        factory {
-            AppViewModel(
-                appRepository = get<IAppRepository>(),
-                logger = get<IAppLogger>(),
-            )
-        }
-        factory {
-            HomeScreenViewModel(
-                appRepository = get<IAppRepository>(),
-                logger = get<IAppLogger>(),
-            )
-        }
-        factory { (serverId: Int) ->
-            SpeedTestScreenViewModel(
-                appRepository = get<IAppRepository>(),
-                logger = get<IAppLogger>(),
-                serverId = serverId,
-            )
-        }
-        factory {
-            HistoryScreenViewModel(
-                appRepository = get<IAppRepository>(),
-                logger = get<IAppLogger>(),
-            )
-        }
-        factory {
-            SettingsScreenViewModel(
-                appRepository = get<IAppRepository>(),
-                logger = get<IAppLogger>(),
-            )
-        }
-    }
+@Module
+class ViewModelModule {
+
+    @Factory
+    fun provideAppViewModel(
+        appRepository: IAppRepository,
+        logger: IAppLogger,
+    ): AppViewModel =
+        AppViewModel(
+            appRepository = appRepository,
+            logger = logger,
+        )
+
+    @Factory
+    fun provideHomeScreenViewModel(
+        appRepository: IAppRepository,
+        logger: IAppLogger,
+    ): HomeScreenViewModel =
+        HomeScreenViewModel(
+            appRepository = appRepository,
+            logger = logger,
+        )
+
+    @Factory
+    fun provideSpeedTestScreenViewModel(
+        appRepository: IAppRepository,
+        logger: IAppLogger,
+        @InjectedParam serverId: Int,
+    ): SpeedTestScreenViewModel =
+        SpeedTestScreenViewModel(
+            appRepository = appRepository,
+            logger = logger,
+            serverId = serverId,
+        )
+
+    @Factory
+    fun provideHistoryScreenViewModel(
+        appRepository: IAppRepository,
+        logger: IAppLogger,
+    ): HistoryScreenViewModel =
+        HistoryScreenViewModel(
+            appRepository = appRepository,
+            logger = logger,
+        )
+
+    @Factory
+    fun provideSettingsScreenViewModel(
+        appRepository: IAppRepository,
+        logger: IAppLogger,
+    ): SettingsScreenViewModel =
+        SettingsScreenViewModel(
+            appRepository = appRepository,
+            logger = logger,
+        )
+}

@@ -17,59 +17,79 @@ import me.mitkovic.kmp.netpulse.data.remote.IRemoteService
 import me.mitkovic.kmp.netpulse.data.remote.RemoteServiceImpl
 import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import nl.adaptivity.xmlutil.serialization.XML
-import org.koin.dsl.module
+import org.koin.core.annotation.Module
+import org.koin.core.annotation.Provided
+import org.koin.core.annotation.Single
 
 // Shared DB wrapper – platform only needs to provide SqlDriver.
-val databaseModule =
-    module {
-        single<NetPulseDatabase> {
-            NetPulseDatabase(
-                driver = get<SqlDriver>(),
-            )
-        }
-    }
+@Module
+class DatabaseModule {
+
+    @Single
+    fun provideNetPulseDatabase(
+        @Provided driver: SqlDriver,
+    ): NetPulseDatabase =
+        NetPulseDatabase(
+            driver = driver,
+        )
+}
 
 // Shared local storage wiring – platform provides IThemeDataStorage & ISettingsDataStorage.
-val localStorageModule =
-    module {
-        single<IServerStorage> {
-            ServerStorageImpl(
-                database = get<NetPulseDatabase>(),
-            )
-        }
+@Module
+class LocalStorageModule {
 
-        single<ITestResultStorage> {
-            TestResultStorageImpl(
-                database = get<NetPulseDatabase>(),
-                logger = get<IAppLogger>(),
-            )
-        }
+    @Single
+    fun provideServerStorage(database: NetPulseDatabase): IServerStorage =
+        ServerStorageImpl(
+            database = database,
+        )
 
-        single<ILocationStorage> {
-            LocationStorageImpl(
-                database = get<NetPulseDatabase>(),
-            )
-        }
+    @Single
+    fun provideTestResultStorage(
+        database: NetPulseDatabase,
+        logger: IAppLogger,
+    ): ITestResultStorage =
+        TestResultStorageImpl(
+            database = database,
+            logger = logger,
+        )
 
-        single<ILocalStorage> {
-            LocalStorageImpl(
-                testResultStorage = get<ITestResultStorage>(),
-                serverStorage = get<IServerStorage>(),
-                locationStorage = get<ILocationStorage>(),
-                themeDataStorage = get<IThemeDataStorage>(),
-                settingsDataStorage = get<ISettingsDataStorage>(),
-            )
-        }
-    }
+    @Single
+    fun provideLocationStorage(database: NetPulseDatabase): ILocationStorage =
+        LocationStorageImpl(
+            database = database,
+        )
 
-// Shared remote service wiring – platform only needs to provide HttpClient (engine) + XML if desired.
-val remoteModule =
-    module {
-        single<IRemoteService> {
-            RemoteServiceImpl(
-                client = get<HttpClient>(),
-                logger = get<IAppLogger>(),
-                xmlFormat = get<XML>(),
-            )
-        }
-    }
+    @Single
+    fun provideLocalStorage(
+        testResultStorage: ITestResultStorage,
+        serverStorage: IServerStorage,
+        locationStorage: ILocationStorage,
+        @Provided themeDataStorage: IThemeDataStorage,
+        @Provided settingsDataStorage: ISettingsDataStorage,
+    ): ILocalStorage =
+        LocalStorageImpl(
+            testResultStorage = testResultStorage,
+            serverStorage = serverStorage,
+            locationStorage = locationStorage,
+            themeDataStorage = themeDataStorage,
+            settingsDataStorage = settingsDataStorage,
+        )
+}
+
+// Shared remote service wiring – platform only needs to provide HttpClient (engine) + XML.
+@Module
+class RemoteModule {
+
+    @Single
+    fun provideRemoteService(
+        @Provided client: HttpClient,
+        logger: IAppLogger,
+        xml: XML,
+    ): IRemoteService =
+        RemoteServiceImpl(
+            client = client,
+            logger = logger,
+            xmlFormat = xml,
+        )
+}

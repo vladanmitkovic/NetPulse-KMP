@@ -25,9 +25,6 @@ import java.util.concurrent.TimeUnit
 
 actual fun platformModule() =
     module {
-        // Include shared DB + local storage + remote modules
-        includes(databaseModule, localStorageModule, remoteModule)
-
         single<DataStore<Preferences>> {
             PreferenceDataStoreFactory.create(
                 produceFile = {
