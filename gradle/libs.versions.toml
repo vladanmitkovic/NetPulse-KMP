@@ -12,7 +12,7 @@ kotlinx-coroutines = "1.10.2"
 
 koin = "4.1.1"
 ksp = "2.3.3"
-koin-annotations = "2.1.0"
+koin-annotations = "2.3.1"
 timber = "5.0.1"
 datastore = "1.2.0"
 ktor = "3.3.3"
