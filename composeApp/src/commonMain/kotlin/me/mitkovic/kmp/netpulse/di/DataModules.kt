@@ -39,15 +39,17 @@ class DatabaseModule {
 class LocalStorageModule {
 
     @Single
-    fun provideServerStorage(database: NetPulseDatabase): IServerStorage =
+    fun provideServerStorage(
+        @Provided database: NetPulseDatabase,
+    ): IServerStorage =
         ServerStorageImpl(
             database = database,
         )
 
     @Single
     fun provideTestResultStorage(
-        database: NetPulseDatabase,
-        logger: IAppLogger,
+        @Provided database: NetPulseDatabase,
+        @Provided logger: IAppLogger,
     ): ITestResultStorage =
         TestResultStorageImpl(
             database = database,
@@ -55,7 +57,9 @@ class LocalStorageModule {
         )
 
     @Single
-    fun provideLocationStorage(database: NetPulseDatabase): ILocationStorage =
+    fun provideLocationStorage(
+        @Provided database: NetPulseDatabase,
+    ): ILocationStorage =
         LocationStorageImpl(
             database = database,
         )
@@ -84,8 +88,8 @@ class RemoteModule {
     @Single
     fun provideRemoteService(
         @Provided client: HttpClient,
-        logger: IAppLogger,
-        xml: XML,
+        @Provided logger: IAppLogger,
+        @Provided xml: XML,
     ): IRemoteService =
         RemoteServiceImpl(
             client = client,

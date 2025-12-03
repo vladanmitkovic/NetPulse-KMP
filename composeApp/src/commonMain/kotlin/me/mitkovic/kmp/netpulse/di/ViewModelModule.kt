@@ -10,14 +10,15 @@ import me.mitkovic.kmp.netpulse.ui.screens.speedtest.SpeedTestScreenViewModel
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Module
+import org.koin.core.annotation.Provided
 
 @Module
 class ViewModelModule {
 
     @Factory
     fun provideAppViewModel(
-        appRepository: IAppRepository,
-        logger: IAppLogger,
+        @Provided appRepository: IAppRepository,
+        @Provided logger: IAppLogger,
     ): AppViewModel =
         AppViewModel(
             appRepository = appRepository,
@@ -26,8 +27,8 @@ class ViewModelModule {
 
     @Factory
     fun provideHomeScreenViewModel(
-        appRepository: IAppRepository,
-        logger: IAppLogger,
+        @Provided appRepository: IAppRepository,
+        @Provided logger: IAppLogger,
     ): HomeScreenViewModel =
         HomeScreenViewModel(
             appRepository = appRepository,
@@ -36,8 +37,8 @@ class ViewModelModule {
 
     @Factory
     fun provideSpeedTestScreenViewModel(
-        appRepository: IAppRepository,
-        logger: IAppLogger,
+        @Provided appRepository: IAppRepository,
+        @Provided logger: IAppLogger,
         @InjectedParam serverId: Int,
     ): SpeedTestScreenViewModel =
         SpeedTestScreenViewModel(
@@ -48,8 +49,8 @@ class ViewModelModule {
 
     @Factory
     fun provideHistoryScreenViewModel(
-        appRepository: IAppRepository,
-        logger: IAppLogger,
+        @Provided appRepository: IAppRepository,
+        @Provided logger: IAppLogger,
     ): HistoryScreenViewModel =
         HistoryScreenViewModel(
             appRepository = appRepository,
@@ -58,8 +59,8 @@ class ViewModelModule {
 
     @Factory
     fun provideSettingsScreenViewModel(
-        appRepository: IAppRepository,
-        logger: IAppLogger,
+        @Provided appRepository: IAppRepository,
+        @Provided logger: IAppLogger,
     ): SettingsScreenViewModel =
         SettingsScreenViewModel(
             appRepository = appRepository,

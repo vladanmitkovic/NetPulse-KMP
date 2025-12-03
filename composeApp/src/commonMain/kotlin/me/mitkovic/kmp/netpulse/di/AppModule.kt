@@ -16,6 +16,7 @@ import me.mitkovic.kmp.netpulse.platform.Platform
 import me.mitkovic.kmp.netpulse.platform.getPlatform
 import nl.adaptivity.xmlutil.serialization.XML
 import org.koin.core.annotation.Module
+import org.koin.core.annotation.Provided
 import org.koin.core.annotation.Single
 
 @Module
@@ -36,21 +37,25 @@ class AppModule {
         }
 
     @Single
-    fun provideThemeRepository(localStorage: ILocalStorage): IThemeRepository =
+    fun provideThemeRepository(
+        @Provided localStorage: ILocalStorage,
+    ): IThemeRepository =
         ThemeRepositoryImpl(
             localStorage = localStorage,
         )
 
     @Single
-    fun provideSettingsRepository(localStorage: ILocalStorage): ISettingsRepository =
+    fun provideSettingsRepository(
+        @Provided localStorage: ILocalStorage,
+    ): ISettingsRepository =
         SettingsRepositoryImpl(
             localStorage = localStorage,
         )
 
     @Single
     fun provideSpeedTestRepository(
-        localStorage: ILocalStorage,
-        remoteService: IRemoteService,
+        @Provided localStorage: ILocalStorage,
+        @Provided remoteService: IRemoteService,
         settingsRepository: ISettingsRepository,
         logger: IAppLogger,
     ): ISpeedTestRepository =
