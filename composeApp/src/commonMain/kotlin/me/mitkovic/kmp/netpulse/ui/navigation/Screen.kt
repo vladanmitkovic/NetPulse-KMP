@@ -2,19 +2,19 @@ package me.mitkovic.kmp.netpulse.ui.navigation
 
 import kotlinx.serialization.Serializable
 
-sealed class Screen {
+sealed interface Screen {
 
     @Serializable
-    object Home : Screen()
+    object Home : Screen
 
     @Serializable
     data class SpeedTest(
         val serverId: Int,
-    ) : Screen()
+    ) : Screen
 
     @Serializable
-    object History : Screen()
+    object History : Screen
 
     @Serializable
-    object Settings : Screen()
+    object Settings : Screen
 }
