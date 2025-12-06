@@ -72,6 +72,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                     color = MaterialTheme.colorScheme.onBackground,
                 )
             }
+
             is ServerUiState.Success -> {
                 if ((serverState as ServerUiState.Success).server == null) {
                     Text(
@@ -80,6 +81,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                     )
                 }
             }
+
             is ServerUiState.Error -> {
                 Text(
                     text = (serverState as ServerUiState.Error).errorText,
@@ -97,6 +99,7 @@ fun SpeedTestScreen(viewModel: SpeedTestScreenViewModel) {
                     color = MaterialTheme.colorScheme.secondary,
                 )
             }
+
             else -> {
                 Speedometer(
                     progressUi = progressUi,
@@ -325,22 +328,21 @@ fun Speedometer(
                     Column(
                         horizontalAlignment = Alignment.Start,
                     ) {
-                        val isDownloadingNow = isDownloading
                         Text(
                             text = "DOWNLOAD",
-                            fontSize = if (isDownloadingNow) 17.sp else 12.sp,
+                            fontSize = if (isDownloading) 17.sp else 12.sp,
                             fontWeight = Bold,
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = progressUi.downloadSpeedText,
-                            fontSize = if (isDownloadingNow) 30.sp else 20.sp,
+                            fontSize = if (isDownloading) 30.sp else 20.sp,
                             fontWeight = Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
                             text = "Mbps",
-                            fontSize = if (isDownloadingNow) 20.sp else 17.sp,
+                            fontSize = if (isDownloading) 20.sp else 17.sp,
                             fontWeight = Normal,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -387,22 +389,21 @@ fun Speedometer(
                     Column(
                         horizontalAlignment = Alignment.Start,
                     ) {
-                        val isUploadingNow = isUploading
                         Text(
                             text = "UPLOAD",
-                            fontSize = if (isUploadingNow) 17.sp else 12.sp,
+                            fontSize = if (isUploading) 17.sp else 12.sp,
                             fontWeight = Bold,
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                         Text(
                             text = progressUi.uploadSpeedText,
-                            fontSize = if (isUploadingNow) 30.sp else 20.sp,
+                            fontSize = if (isUploading) 30.sp else 20.sp,
                             fontWeight = Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
                             text = "Mbps",
-                            fontSize = if (isUploadingNow) 20.sp else 17.sp,
+                            fontSize = if (isUploading) 20.sp else 17.sp,
                             fontWeight = Normal,
                             color = MaterialTheme.colorScheme.primary,
                         )

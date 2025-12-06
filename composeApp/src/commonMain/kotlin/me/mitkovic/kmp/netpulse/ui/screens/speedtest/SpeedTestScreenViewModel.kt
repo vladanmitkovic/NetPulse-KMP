@@ -18,26 +18,26 @@ import me.mitkovic.kmp.netpulse.util.formatDistanceMetersToKm
 import me.mitkovic.kmp.netpulse.util.formatDoubleToInt
 import kotlin.coroutines.cancellation.CancellationException
 
-sealed class ServerUiState {
-    object Loading : ServerUiState()
+sealed interface ServerUiState {
+    object Loading : ServerUiState
 
     data class Success(
         val server: Server?,
-    ) : ServerUiState()
+    ) : ServerUiState
 
     data class Error(
         val errorText: String,
-    ) : ServerUiState()
+    ) : ServerUiState
 }
 
-sealed class DatabaseUiState {
-    object Loading : DatabaseUiState()
+sealed interface DatabaseUiState {
+    object Loading : DatabaseUiState
 
     data class Error(
         val errorText: String,
-    ) : DatabaseUiState()
+    ) : DatabaseUiState
 
-    object Completed : DatabaseUiState()
+    object Completed : DatabaseUiState
 }
 
 data class SpeedTestUi(
