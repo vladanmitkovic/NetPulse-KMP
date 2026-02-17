@@ -18,30 +18,30 @@ import me.mitkovic.kmp.netpulse.domain.model.Server
 import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import me.mitkovic.kmp.netpulse.util.formatDistanceMetersToKm
 
-sealed class ServersUiState {
-    object Loading : ServersUiState()
+sealed interface ServersUiState {
+    object Loading : ServersUiState
 
     data class Success(
         val servers: List<Server>,
-    ) : ServersUiState()
+    ) : ServersUiState
 
     data class Error(
         val error: String,
         val servers: List<Server> = emptyList(),
-    ) : ServersUiState()
+    ) : ServersUiState
 }
 
-sealed class NearestServerByLocationUiState {
-    object Loading : NearestServerByLocationUiState()
+sealed interface NearestServerByLocationUiState {
+    object Loading : NearestServerByLocationUiState
 
     data class Success(
         val nearestServer: Server?,
-    ) : NearestServerByLocationUiState()
+    ) : NearestServerByLocationUiState
 
     data class Error(
         val error: String,
         val errorText: String,
-    ) : NearestServerByLocationUiState()
+    ) : NearestServerByLocationUiState
 }
 
 data class ServerItemUi(
@@ -114,8 +114,14 @@ class HomeScreenViewModel(
                         }
                         ServersUiState.Success(servers = resource.data?.servers ?: emptyList())
                     }
-                    is Resource.Error -> ServersUiState.Error(error = resource.message ?: SOMETHING_WENT_WRONG)
-                    is Resource.Loading -> ServersUiState.Loading
+
+                    is Resource.Error -> {
+                        ServersUiState.Error(error = resource.message ?: SOMETHING_WENT_WRONG)
+                    }
+
+                    is Resource.Loading -> {
+                        ServersUiState.Loading
+                    }
                 }
             }.stateIn(
                 scope = viewModelScope,
