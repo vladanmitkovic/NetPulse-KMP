@@ -77,7 +77,8 @@ kotlin {
             api(libs.sqldelight.coroutines)
 
             // Navigation
-            implementation(libs.androidx.navigation.compose)
+            implementation(libs.navigation3.ui)
+            implementation(libs.lifecycle.viewmodel.navigation3)
 
             // XML Serialization
             implementation(libs.xmlutil.serialization)

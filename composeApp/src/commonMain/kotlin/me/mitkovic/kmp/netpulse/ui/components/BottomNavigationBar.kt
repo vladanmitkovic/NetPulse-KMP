@@ -6,57 +6,48 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import me.mitkovic.kmp.netpulse.ui.navigation.AppNavigator
 import me.mitkovic.kmp.netpulse.ui.navigation.BottomNavigation
 import me.mitkovic.kmp.netpulse.ui.navigation.Screen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+fun BottomNavigationBar(
+    navigator: AppNavigator,
+    backStack: NavBackStack<NavKey>,
+) {
+    val current = backStack.lastOrNull()
 
     BottomAppBar(
         containerColor = MaterialTheme.colorScheme.background,
     ) {
-        BottomNavigation.entries.forEach { navigationItem ->
+        BottomNavigation.entries.forEach { item ->
             val isSelected =
-                when (navigationItem) {
-                    BottomNavigation.HOME -> {
-                        currentDestination?.hasRoute(Screen.Home::class) == true ||
-                            currentDestination?.hasRoute(Screen.SpeedTest::class) == true
-                    }
-                    else -> currentDestination?.hasRoute(navigationItem.route::class) == true
+                when (item) {
+                    BottomNavigation.HOME -> current == Screen.Home || current is Screen.SpeedTest
+                    else -> current == item.route
                 }
 
             NavigationBarItem(
                 selected = isSelected,
                 label = {
                     Text(
-                        stringResource(navigationItem.label),
+                        stringResource(item.label),
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                 },
                 icon = {
                     Icon(
-                        painter = painterResource(navigationItem.icon),
-                        contentDescription = stringResource(navigationItem.label),
+                        painter = painterResource(item.icon),
+                        contentDescription = stringResource(item.label),
                         tint = MaterialTheme.colorScheme.onBackground,
                     )
                 },
                 onClick = {
-                    if (currentDestination?.hasRoute(navigationItem.route::class) != true) {
-                        navController.navigate(navigationItem.route) {
-                            popUpTo<Screen.Home> {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                        }
-                    }
+                    navigator.navigateToTab(item.route)
                 },
             )
         }

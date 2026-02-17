@@ -1,10 +1,8 @@
 package me.mitkovic.kmp.netpulse.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import netpulse_kmp.composeapp.generated.resources.Res
 import netpulse_kmp.composeapp.generated.resources.app_name
 import netpulse_kmp.composeapp.generated.resources.history
@@ -19,21 +17,22 @@ data class TopBarState(
 )
 
 @Composable
-fun NavController.currentTopBarState(): TopBarState {
-    val currentBackStackEntry by currentBackStackEntryAsState()
-    val currentDestination = currentBackStackEntry?.destination
+fun currentTopBarState(backStack: NavBackStack<NavKey>): TopBarState {
+    val current = backStack.lastOrNull()
 
-    val isHome = currentDestination?.hasRoute(Screen.Home::class) ?: true
+    val isHome = current == Screen.Home
+
+    val title =
+        when (current) {
+            Screen.Home -> stringResource(Res.string.app_name)
+            is Screen.SpeedTest -> stringResource(Res.string.speed_test)
+            Screen.History -> stringResource(Res.string.history)
+            Screen.Settings -> stringResource(Res.string.settings)
+            else -> ""
+        }
 
     return TopBarState(
-        title =
-            when {
-                isHome -> stringResource(Res.string.app_name)
-                currentDestination.hasRoute(Screen.SpeedTest::class) -> stringResource(Res.string.speed_test)
-                currentDestination.hasRoute(Screen.History::class) -> stringResource(Res.string.history)
-                currentDestination.hasRoute(Screen.Settings::class) -> stringResource(Res.string.settings)
-                else -> ""
-            },
+        title = title,
         showActions = isHome,
         showBackIcon = !isHome,
     )

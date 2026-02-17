@@ -1,11 +1,12 @@
 package me.mitkovic.kmp.netpulse.ui.navigation
 
+import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-sealed interface Screen {
+sealed interface Screen : NavKey {
 
     @Serializable
-    object Home : Screen
+    data object Home : Screen
 
     @Serializable
     data class SpeedTest(
@@ -13,8 +14,8 @@ sealed interface Screen {
     ) : Screen
 
     @Serializable
-    object History : Screen
+    data object History : Screen
 
     @Serializable
-    object Settings : Screen
+    data object Settings : Screen
 }

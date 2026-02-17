@@ -22,12 +22,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.rememberNavController
 import me.mitkovic.kmp.netpulse.logging.IAppLogger
 import me.mitkovic.kmp.netpulse.ui.components.ApplicationTitle
 import me.mitkovic.kmp.netpulse.ui.components.BottomNavigationBar
-import me.mitkovic.kmp.netpulse.ui.navigation.AppNavHost
+import me.mitkovic.kmp.netpulse.ui.navigation.AppNavDisplay
 import me.mitkovic.kmp.netpulse.ui.navigation.currentTopBarState
+import me.mitkovic.kmp.netpulse.ui.navigation.rememberAppNavigator
 import me.mitkovic.kmp.netpulse.ui.theme.AppTheme
 import me.mitkovic.kmp.netpulse.ui.theme.spacing
 import netpulse_kmp.composeapp.generated.resources.Res
@@ -63,8 +63,10 @@ fun App() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(appViewModel: AppViewModel) {
-    val navController = rememberNavController()
-    val topBarState = navController.currentTopBarState()
+    val navigator = rememberAppNavigator()
+    val backStack = navigator.backStack
+
+    val topBarState = currentTopBarState(backStack)
 
     Scaffold(
         modifier =
@@ -74,9 +76,7 @@ fun MainScreen(appViewModel: AppViewModel) {
         // 60% dominant color for main screen bg
         topBar = {
             TopAppBar(
-                title = {
-                    ApplicationTitle(topBarState.title, topBarState.showActions)
-                },
+                title = { ApplicationTitle(topBarState.title, topBarState.showActions) },
                 actions = {
                     if (topBarState.showActions) {
                         IconButton(
@@ -100,7 +100,7 @@ fun MainScreen(appViewModel: AppViewModel) {
                 },
                 navigationIcon = {
                     if (topBarState.showBackIcon) {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(onClick = { navigator.goBack() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 modifier = Modifier.size(MaterialTheme.spacing.iconSize),
@@ -120,17 +120,14 @@ fun MainScreen(appViewModel: AppViewModel) {
             Column {
                 // Bottom Navigation Bar
                 BottomNavigationBar(
-                    navController = navController,
+                    navigator = navigator,
+                    backStack = backStack,
                 )
             }
         },
     ) { paddingValues ->
-        Box(
-            modifier = Modifier.padding(paddingValues),
-        ) {
-            AppNavHost(
-                navHostController = navController,
-            )
+        Box(modifier = Modifier.padding(paddingValues)) {
+            AppNavDisplay(navigator = navigator)
         }
     }
 }
