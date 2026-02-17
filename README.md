@@ -1,6 +1,6 @@
 # NetPulse - KMP
 
-**NetPulse** - KMP is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop, built with Compose Multiplatform, Navigation Compose, Flow, Koin, Ktor, SqlDelight, DataStore, NSUserDefaults and Material3 based on MVVM architecture.
+**NetPulse** - KMP is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop, built with Compose Multiplatform, Nav 3 (Navigation 3), Flow, Koin, Ktor, SqlDelight, DataStore, NSUserDefaults and Material3 based on MVVM architecture.
 
 <img src="previews/Netpulse.png" alt="App screenshot" style="max-width: 100%;">
 
@@ -54,7 +54,7 @@ This is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop.
 - **DI Koin**: Dependency injection.
 - **DataStore**: For Android data storage and management.
 - **NSUserDefaults**: For iOS data storage and management.
-- **Navigation Compose**: For navigating between screens.
+- **Nav 3**: For navigating between screens.
 - **Material 3**: Latest Material Design components.
 
 ## Architecture
