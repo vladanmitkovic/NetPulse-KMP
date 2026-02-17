@@ -100,7 +100,7 @@ fun MainScreen(appViewModel: AppViewModel) {
                 },
                 navigationIcon = {
                     if (topBarState.showBackIcon) {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(onClick = { navigator.goBack() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 modifier = Modifier.size(MaterialTheme.spacing.iconSize),
