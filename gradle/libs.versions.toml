@@ -18,8 +18,13 @@ compose-material-iconsExtended = "1.7.3"
 compose-androidx = "1.10.3"
 
 androidx-activity = "1.12.4"
-androidx-lifecycle = "2.9.6"
-androidx-navigation = "2.9.2"
+# Lifecycle (KMP)
+# version 2.10.0-alpha06 work fine with  iosX64() but 2.10.0-alpha08 don't
+# I had to comment that code in build.gradle.kts
+androidx-lifecycle = "2.10.0-alpha06"
+
+# Navigation 3 (KMP)
+navigation3 = "1.0.0-alpha06"
 
 kotlinx-coroutines = "1.10.2"
 koin = "4.1.1"
@@ -40,6 +45,7 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 
 # Kotlinx
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
@@ -80,8 +86,8 @@ sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", versi
 sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 
-# Navigation
-androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+# Nav3 (KMP) - UI ONLY (NO runtime artifact here)
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 
 # DateTime
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
