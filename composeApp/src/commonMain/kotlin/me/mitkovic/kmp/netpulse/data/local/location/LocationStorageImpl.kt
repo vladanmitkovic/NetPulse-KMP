@@ -1,11 +1,10 @@
 package me.mitkovic.kmp.netpulse.data.local.location
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToOneOrNull
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.mitkovic.kmp.netpulse.data.local.database.CurrentLocationEntity
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.database.TestLocationEntity
 import me.mitkovic.kmp.netpulse.data.model.GeoIpResponse
 import me.mitkovic.kmp.netpulse.domain.model.UserLocation
 
@@ -17,9 +16,8 @@ class LocationStorageImpl(
         response: GeoIpResponse,
         timestamp: Long,
     ) {
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.clearCurrentLocation()
-            database.netPulseDatabaseQueries.insertCurrentLocation(
+        database.locationDao().replaceCurrentLocation(
+            CurrentLocationEntity(
                 ip = response.ip,
                 network = response.network,
                 version = response.version,
@@ -48,15 +46,13 @@ class LocationStorageImpl(
                 asn = response.asn,
                 org = response.org,
                 timestamp = timestamp,
-            )
-        }
+            ),
+        )
     }
 
     override fun retrieveCurrentLocation(): Flow<UserLocation?> =
-        database.netPulseDatabaseQueries
-            .getCurrentLocation()
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.Default)
+        database.locationDao()
+            .observeCurrentLocation()
             .map { entity ->
                 entity?.let { currentLocation ->
                     UserLocation(
@@ -93,12 +89,12 @@ class LocationStorageImpl(
             }
 
     override suspend fun clearCurrentLocation() {
-        database.netPulseDatabaseQueries.clearCurrentLocation()
+        database.locationDao().clearCurrentLocation()
     }
 
-    override suspend fun storeTestLocation(location: UserLocation): Long {
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.insertTestLocation(
+    override suspend fun storeTestLocation(location: UserLocation): Long =
+        database.locationDao().insertTestLocation(
+            TestLocationEntity(
                 ip = location.ip,
                 network = location.network,
                 version = location.version,
@@ -127,52 +123,18 @@ class LocationStorageImpl(
                 asn = location.asn,
                 org = location.org,
                 timestamp = location.timestamp,
-            )
-        }
-        return database.netPulseDatabaseQueries.lastInsertRowId().executeAsOne()
-    }
+            ),
+        )
 
     override suspend fun getOrStoreTestLocation(location: UserLocation): Long {
         val existingId =
-            database.netPulseDatabaseQueries
+            database.locationDao()
                 .getTestLocationIdByLatLon(location.latitude, location.longitude)
-                .executeAsOneOrNull()
+
         if (existingId != null) {
             return existingId
         }
 
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.insertTestLocation(
-                ip = location.ip,
-                network = location.network,
-                version = location.version,
-                city = location.city,
-                region = location.region,
-                region_code = location.regionCode,
-                country = location.country,
-                country_name = location.countryName,
-                country_code = location.countryCode,
-                country_code_iso3 = location.countryCodeIso3,
-                country_capital = location.countryCapital,
-                country_tld = location.countryTld,
-                continent_code = location.continentCode,
-                in_eu = location.inEu?.let { if (it) 1L else 0L },
-                postal = location.postal,
-                latitude = location.latitude,
-                longitude = location.longitude,
-                timezone = location.timezone,
-                utc_offset = location.utcOffset,
-                country_calling_code = location.countryCallingCode,
-                currency = location.currency,
-                currency_name = location.currencyName,
-                languages = location.languages,
-                country_area = location.countryArea,
-                country_population = location.countryPopulation,
-                asn = location.asn,
-                org = location.org,
-                timestamp = location.timestamp,
-            )
-        }
-        return database.netPulseDatabaseQueries.lastInsertRowId().executeAsOne()
+        return storeTestLocation(location)
     }
 }
