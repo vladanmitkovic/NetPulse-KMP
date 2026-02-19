@@ -5,11 +5,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.database.DatabaseFactory
 import me.mitkovic.kmp.netpulse.data.local.settings.ISettingsDataStorage
 import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.theme.IThemeDataStorage
@@ -33,16 +31,9 @@ actual fun platformModule() =
             )
         }
 
-        single<SqlDriver> {
-            val context = androidContext()
-
-            // Delete the corrupted database
-            context.deleteDatabase("net_pulse_fourth.db")
-
-            AndroidSqliteDriver(
-                schema = NetPulseDatabase.Schema,
-                context = context,
-                name = "net_pulse_fifth.db",
+        single<DatabaseFactory> {
+            DatabaseFactory(
+                context = androidContext(),
             )
         }
 

@@ -1,15 +1,12 @@
 package me.mitkovic.kmp.netpulse.data.local.testresult
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
 import me.mitkovic.kmp.netpulse.data.local.database.TestResult
+import me.mitkovic.kmp.netpulse.data.local.database.TestResultEntity
 import me.mitkovic.kmp.netpulse.data.local.database.TestSession
+import me.mitkovic.kmp.netpulse.data.local.database.TestSessionEntity
 import me.mitkovic.kmp.netpulse.logging.IAppLogger
 
 class TestResultStorageImpl(
@@ -30,10 +27,9 @@ class TestResultStorageImpl(
         jitter: Double?,
         packetLoss: Double?,
         testTimestamp: Long,
-    ): Long {
-        var id: Long = 0
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.insertTestSession(
+    ): Long =
+        database.testResultDao().insertTestSession(
+            TestSessionEntity(
                 serverId = serverId,
                 serverUrl = serverUrl,
                 serverName = serverName,
@@ -41,22 +37,17 @@ class TestResultStorageImpl(
                 serverSponsor = serverSponsor,
                 serverHost = serverHost,
                 serverDistance = serverDistance,
-                testLocationId = testLocationId,
                 ping = ping,
                 jitter = jitter,
                 packetLoss = packetLoss,
                 testTimestamp = testTimestamp,
-            )
-            id = database.netPulseDatabaseQueries.lastInsertRowId().executeAsOne()
-        }
-        return id
-    }
+                testLocationId = testLocationId,
+            ),
+        )
 
     override fun getLatestTestSession(): Flow<TestSession?> =
-        database.netPulseDatabaseQueries
-            .getLatestTestSession()
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.IO)
+        database.testResultDao()
+            .observeLatestTestSession()
             .map { entity ->
                 entity?.let {
                     TestSession(
@@ -78,10 +69,8 @@ class TestResultStorageImpl(
             }
 
     override fun getLatestSessionByServerId(serverId: String): Flow<TestSession?> =
-        database.netPulseDatabaseQueries
-            .getTestSessionByServerId(serverId)
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.IO)
+        database.testResultDao()
+            .observeLatestSessionByServerId(serverId)
             .map { entity ->
                 entity?.let {
                     TestSession(
@@ -108,7 +97,12 @@ class TestResultStorageImpl(
         jitter: Double,
         packetLoss: Double,
     ) {
-        database.netPulseDatabaseQueries.updateTestSessionPingJitterPacketLoss(ping, jitter, packetLoss, sessionId)
+        database.testResultDao().updateTestSessionPingJitterPacketLoss(
+            sessionId = sessionId,
+            ping = ping,
+            jitter = jitter,
+            packetLoss = packetLoss,
+        )
     }
 
     override suspend fun insertTestResult(
@@ -117,26 +111,35 @@ class TestResultStorageImpl(
         speed: Double,
         resultTimestamp: Long,
     ) {
-        database.netPulseDatabaseQueries.insertTestResult(
-            sessionId = sessionId,
-            testType = testType.toLong(),
-            speed = speed,
-            resultTimestamp = resultTimestamp,
+        database.testResultDao().insertTestResult(
+            TestResultEntity(
+                sessionId = sessionId,
+                testType = testType.toLong(),
+                speed = speed,
+                resultTimestamp = resultTimestamp,
+            ),
         )
         logger.logDebug("TestResultStorageImpl", "Triggering insert for sessionId=$sessionId, testType=$testType")
     }
 
     override fun getLatestTestResult(): Flow<TestResult?> =
-        database.netPulseDatabaseQueries
-            .getLatestTestResult()
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.IO)
+        database.testResultDao()
+            .observeLatestTestResult()
+            .map { entity ->
+                entity?.let {
+                    TestResult(
+                        resultId = it.resultId,
+                        sessionId = it.sessionId,
+                        testType = it.testType,
+                        speed = it.speed,
+                        resultTimestamp = it.resultTimestamp,
+                    )
+                }
+            }
 
     override fun getTestSessions(): Flow<List<TestSession>> =
-        database.netPulseDatabaseQueries
-            .getTestSessions()
-            .asFlow()
-            .mapToList(Dispatchers.IO)
+        database.testResultDao()
+            .observeTestSessions()
             .map { entities ->
                 entities.map { entity ->
                     TestSession(
@@ -158,10 +161,8 @@ class TestResultStorageImpl(
             }
 
     override fun getTestResultsBySessionId(sessionId: Long): Flow<List<TestResult>> =
-        database.netPulseDatabaseQueries
-            .getTestResultsBySessionId(sessionId)
-            .asFlow()
-            .mapToList(Dispatchers.IO)
+        database.testResultDao()
+            .observeTestResultsBySessionId(sessionId)
             .map { entities ->
                 entities.map { entity ->
                     TestResult(
@@ -175,10 +176,7 @@ class TestResultStorageImpl(
             }
 
     override suspend fun deleteTestSession(sessionId: Long) {
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.deleteTestResultsBySessionId(sessionId)
-            database.netPulseDatabaseQueries.deleteTestSession(sessionId)
-        }
+        database.testResultDao().deleteSessionAndResults(sessionId)
         logger.logDebug("TestResultStorageImpl", "Deleted sessionId=$sessionId and its results")
     }
 }

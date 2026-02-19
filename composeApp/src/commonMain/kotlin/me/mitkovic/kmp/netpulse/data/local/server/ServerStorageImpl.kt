@@ -1,11 +1,9 @@
 package me.mitkovic.kmp.netpulse.data.local.server
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.database.ServerEntity
 import me.mitkovic.kmp.netpulse.data.model.Server
 import me.mitkovic.kmp.netpulse.data.model.ServersResponse
 
@@ -14,10 +12,9 @@ open class ServerStorageImpl(
 ) : IServerStorage {
 
     override suspend fun storeServers(response: ServersResponse) {
-        database.netPulseDatabaseQueries.transaction {
-            database.netPulseDatabaseQueries.clearServers()
-            response.servers.forEach { server ->
-                database.netPulseDatabaseQueries.insertServer(
+        val servers =
+            response.servers.map { server ->
+                ServerEntity(
                     id = server.attrs["id"] ?: error("Missing id"),
                     url = server.attrs["url"] ?: error("Missing url"),
                     lat = server.attrs["lat"]?.toDouble() ?: error("Missing lat"),
@@ -30,14 +27,13 @@ open class ServerStorageImpl(
                     distance = server.attrs["distance"]?.toDouble() ?: 0.0,
                 )
             }
-        }
+
+        database.serverDao().replaceServers(servers)
     }
 
     override fun retrieveServers(): Flow<ServersResponse?> =
-        database.netPulseDatabaseQueries
-            .getServers()
-            .asFlow()
-            .mapToList(context = Dispatchers.Default)
+        database.serverDao()
+            .observeServers()
             .map { entities ->
                 if (entities.isEmpty()) {
                     null
@@ -66,10 +62,8 @@ open class ServerStorageImpl(
             }
 
     override fun getServer(serverId: Int): Flow<ServersResponse?> =
-        database.netPulseDatabaseQueries
-            .getServerById(serverId.toString())
-            .asFlow()
-            .mapToList(context = Dispatchers.Default)
+        database.serverDao()
+            .observeServerById(serverId.toString())
             .map { entities ->
                 if (entities.isEmpty()) {
                     null
@@ -98,6 +92,6 @@ open class ServerStorageImpl(
             }
 
     override suspend fun clearServers() {
-        database.netPulseDatabaseQueries.clearServers()
+        database.serverDao().clearServers()
     }
 }
