@@ -49,7 +49,7 @@ This is a **Kotlin Multiplatform** project targeting Android, iOS and Desktop.
 **NetPulse** - KMP is built using a modern stack of technologies designed to offer robust performance and scalability:
 - **Compose Multiplatform**: For building native UIs.
 - **Ktor**: For network operations.
-- **SQL Delight Database**: For local data storage.
+- **Room Database**: For local data storage.
 - **MVVM (Model-View-ViewModel)**: Architectural pattern.
 - **DI Koin**: Dependency injection.
 - **DataStore**: For Android data storage and management.
