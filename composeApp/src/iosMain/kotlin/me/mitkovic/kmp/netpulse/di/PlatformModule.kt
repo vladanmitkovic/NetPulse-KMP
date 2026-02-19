@@ -1,10 +1,8 @@
 package me.mitkovic.kmp.netpulse.di
 
-import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.darwin.Darwin
-import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
+import me.mitkovic.kmp.netpulse.data.local.database.DatabaseFactory
 import me.mitkovic.kmp.netpulse.data.local.settings.ISettingsDataStorage
 import me.mitkovic.kmp.netpulse.data.local.settings.SettingsDataStorageImpl
 import me.mitkovic.kmp.netpulse.data.local.theme.IThemeDataStorage
@@ -20,11 +18,8 @@ actual fun platformModule() =
             NSUserDefaults.standardUserDefaults()
         }
 
-        single<SqlDriver> {
-            NativeSqliteDriver(
-                schema = NetPulseDatabase.Schema,
-                name = "net_pulse_fifth.db",
-            )
+        single<DatabaseFactory> {
+            DatabaseFactory()
         }
 
         single<IThemeDataStorage> {

@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.sqldelight)
+    alias(libs.plugins.androidx.room)
     alias(libs.plugins.ksp)
 }
 
@@ -72,9 +72,9 @@ kotlin {
             // Coroutines
             implementation(libs.kotlinx.coroutines.core)
 
-            // SQLDelight
-            implementation(libs.sqldelight.runtime)
-            api(libs.sqldelight.coroutines)
+            // Room
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
 
             // Navigation
             implementation(libs.navigation3.ui)
@@ -109,9 +109,6 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.core)
 
-            // SQLDelight Android Driver
-            implementation(libs.sqldelight.android.driver)
-
             // Ktor Engine
             implementation(libs.ktor.client.okhttp)
 
@@ -128,9 +125,6 @@ kotlin {
 
             // Ktor Engine for iOS
             implementation(libs.ktor.client.darwin)
-
-            // SQLDelight Native Driver
-            implementation(libs.sqldelight.native.driver)
         }
 
         desktopMain.dependencies {
@@ -145,9 +139,6 @@ kotlin {
 
             // Ktor Engine for Desktop
             implementation(libs.ktor.client.cio)
-
-            // SQLDelight SQLite Driver
-            implementation(libs.sqldelight.sqlite.driver)
         }
 
         // KSP generated sources
@@ -172,6 +163,12 @@ dependencies {
     add("kspIosArm64", libs.koin.ksp.compiler)
     add("kspIosSimulatorArm64", libs.koin.ksp.compiler)
     add("kspDesktop", libs.koin.ksp.compiler)
+
+    add("kspAndroid", libs.androidx.room.compiler)
+    add("kspIosX64", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
+    add("kspDesktop", libs.androidx.room.compiler)
 }
 
 compose.desktop {
@@ -188,13 +185,8 @@ compose.desktop {
     }
 }
 
-// SQLDelight configuration
-sqldelight {
-    databases {
-        create("NetPulseDatabase") {
-            packageName.set("me.mitkovic.kmp.netpulse.data.local.database")
-        }
-    }
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 ksp {

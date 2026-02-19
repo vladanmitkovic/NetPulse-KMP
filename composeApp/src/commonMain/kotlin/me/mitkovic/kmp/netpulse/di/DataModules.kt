@@ -1,9 +1,12 @@
 package me.mitkovic.kmp.netpulse.di
 
-import app.cash.sqldelight.db.SqlDriver
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import me.mitkovic.kmp.netpulse.data.local.ILocalStorage
 import me.mitkovic.kmp.netpulse.data.local.LocalStorageImpl
+import me.mitkovic.kmp.netpulse.data.local.database.DatabaseFactory
 import me.mitkovic.kmp.netpulse.data.local.database.NetPulseDatabase
 import me.mitkovic.kmp.netpulse.data.local.location.ILocationStorage
 import me.mitkovic.kmp.netpulse.data.local.location.LocationStorageImpl
@@ -27,11 +30,12 @@ class DatabaseModule {
 
     @Single
     fun provideNetPulseDatabase(
-        @Provided driver: SqlDriver,
+        @Provided factory: DatabaseFactory,
     ): NetPulseDatabase =
-        NetPulseDatabase(
-            driver = driver,
-        )
+        factory.create()
+            .setDriver(BundledSQLiteDriver())
+            .setQueryCoroutineContext(Dispatchers.IO)
+            .build()
 }
 
 // Shared local storage wiring – platform provides IThemeDataStorage & ISettingsDataStorage.
