@@ -6,13 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		C8ECE6AC2E09DFE70046A709 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		B9DA97B12DC1472C00A4DA20 /* NetPulse-KMP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "NetPulse-KMP.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -41,17 +36,6 @@
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		B9DA97AE2DC1472C00A4DA20 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C8ECE6AC2E09DFE70046A709 /* libsqlite3.tbd in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXGroup section */
 		B9DA97A82DC1472C00A4DA20 = {
 			isa = PBXGroup;
@@ -74,7 +58,6 @@
 		C8ECE6AA2E09DFE70046A709 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C8ECE6AB2E09DFE70046A709 /* libsqlite3.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -88,7 +71,6 @@
 			buildPhases = (
 				B9DA97F42DC1497100A4DA20 /* Compile Kotlin Framework */,
 				B9DA97AD2DC1472C00A4DA20 /* Sources */,
-				B9DA97AE2DC1472C00A4DA20 /* Frameworks */,
 				B9DA97AF2DC1472C00A4DA20 /* Resources */,
 			);
 			buildRules = (
