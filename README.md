@@ -136,6 +136,8 @@ Packaging requires a full JDK that includes `jpackage`; some IDE-bundled runtime
 
 Build and run the existing `iosApp` Xcode project on the selected device or simulator. The Kotlin build phase embeds the framework for Xcode builds and explicitly syncs Compose resources when Android Studio handles framework compilation.
 
+When `JAVA_HOME` is unset, the Xcode build script looks for a bundled JDK in `/Applications/Android Studio Personal.app` and `/Applications/Android Studio.app`. An explicitly configured `JAVA_HOME` takes precedence.
+
 For a standalone debug framework, choose the task matching the destination:
 
 ```sh

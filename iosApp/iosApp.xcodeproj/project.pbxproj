@@ -149,7 +149,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\ncd \"$SRCROOT/..\"\n\nif [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n    ./gradlew :composeApp:syncComposeResourcesForIos\nelse\n    ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\nfi\n";
+			shellScript = "set -e\n\n# Xcode launched from Finder may not inherit JAVA_HOME.\nif [ -z \"${JAVA_HOME:-}\" ]; then\n    for studio_app in \"/Applications/Android Studio Personal.app\" \"/Applications/Android Studio.app\"; do\n        if [ -x \"$studio_app/Contents/jbr/Contents/Home/bin/java\" ]; then\n            export JAVA_HOME=\"$studio_app/Contents/jbr/Contents/Home\"\n            break\n        fi\n    done\nfi\ncd \"$SRCROOT/..\"\n\nif [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n    ./gradlew :composeApp:syncComposeResourcesForIos\nelse\n    ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
