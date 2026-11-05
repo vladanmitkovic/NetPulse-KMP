@@ -88,6 +88,83 @@ The UI Layer consists of UI elements like buttons, menus, tabs that could intera
 
 The data Layer consists of repositories, which include business logic, such as querying data from the local database and requesting remote data from the network. It is implemented as an offline-first source of business logic and follows the [single source of truth](https://en.wikipedia.org/wiki/Single_source_of_truth) principle.
 
+## Development
+
+### Modules
+
+- `composeApp`: shared Compose UI and application logic, platform implementations, and Koin/Room code generation.
+- `androidApp`: Android launcher and application configuration.
+- `desktopApp`: desktop launcher and application packaging.
+- `iosApp`: Xcode application that embeds the shared Kotlin framework.
+
+The desktop target and its platform implementations remain in `composeApp/src/desktopMain`.
+
+### Android
+
+Build the debug application:
+
+```sh
+./gradlew :androidApp:assembleDebug
+```
+
+### Desktop
+
+Run the desktop application:
+
+```sh
+./gradlew :desktopApp:run
+```
+
+In Android Studio, use a Gradle run configuration for `:desktopApp:run`.
+
+Compile and build the desktop JAR:
+
+```sh
+./gradlew :desktopApp:jar
+```
+
+Create an application directory with a bundled runtime, or a macOS installer:
+
+```sh
+./gradlew :desktopApp:createDistributable
+./gradlew :desktopApp:packageDmg
+```
+
+Packaging requires a full JDK that includes `jpackage`; some IDE-bundled runtimes do not include it. Desktop outputs are under `desktopApp/build/`. Native installers are built on the corresponding operating system.
+
+### iOS
+
+Build and run the existing `iosApp` Xcode project on the selected device or simulator. The Kotlin build phase embeds the framework for Xcode builds and explicitly syncs Compose resources when Android Studio handles framework compilation.
+
+When `JAVA_HOME` is unset, the Xcode build script looks for a bundled JDK in `/Applications/Android Studio Personal.app` and `/Applications/Android Studio.app`. An explicitly configured `JAVA_HOME` takes precedence.
+
+For a standalone debug framework, choose the task matching the destination:
+
+```sh
+# iOS Simulator on an Intel Mac
+./gradlew :composeApp:linkDebugFrameworkIosX64
+
+# iOS Simulator on an Apple Silicon Mac
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+
+# Physical iPhone or iPad
+./gradlew :composeApp:linkDebugFrameworkIosArm64
+```
+
+These tasks build the framework; use Xcode or Android Studio's iOS run configuration to launch the application. Native compilation caching uses Kotlin's defaults. After changing the toolchain, test both an initial build and a rebuild after a small Kotlin change on the Intel simulator.
+
+### Generated code and manual checks
+
+Normal builds run Koin and Room code generation. If generated Koin imports are missing, rerun metadata generation:
+
+```sh
+./gradlew :composeApp:kspCommonMainKotlinMetadata --rerun-tasks
+```
+
+Then build the affected platform. Routine builds do not require `clean`.
+
+Before merging, check server selection, starting and cancelling a speed test, download/upload speeds, ping/jitter/packet-loss display, history persistence and deletion, settings persistence, theme switching, and behavior without a network connection. Check Android, desktop, and the Intel iOS Simulator, including iOS launches from both Xcode and Android Studio. Also launch the packaged desktop application to check its bundled runtime, resources, and Room database support.
+
 ### License
 Designed and developed by Vladan Mitkovic (2025)
 
